@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>الغرفة الافتراضية</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Tajawal', -apple-system, sans-serif; background: #fafafa; color: #1a1a1a; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  
+  .container { max-width: 480px; margin: 0 auto; padding: 20px 16px; }
+  
+  .welcome { text-align: center; padding: 30px 10px; }
+  
+  .welcome-icon {
+    width: 72px; height: 72px; margin: 0 auto 20px;
+    background: #1a1a1a; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .welcome-icon svg { width: 36px; height: 36px; fill: #fff; }
+  
+  .welcome-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
+  .welcome-sub { font-size: 15px; color: #666; line-height: 1.7; max-width: 320px; margin: 0 auto 28px; }
+  
+  .start-btn {
+    background: #1a1a1a; color: #fff; border: none;
+    padding: 18px 36px; border-radius: 50px;
+    font-size: 16px; font-weight: 600; cursor: pointer;
+    font-family: inherit; -webkit-appearance: none;
+    display: inline-flex; align-items: center; gap: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    transition: all 0.2s;
+  }
+  .start-btn:active { transform: scale(0.97); background: #333; }
+  .start-btn svg { width: 22px; height: 22px; fill: currentColor; }
+  
+  .analyze-btn {
+    background: #fff; color: #1a1a1a; 
+    border: 1.5px solid #e8e8e8;
+    padding: 14px 28px; border-radius: 50px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    font-family: inherit; -webkit-appearance: none;
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-top: 14px;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .analyze-btn:active { transform: scale(0.97); background: #fafafa; }
+  .analyze-btn svg { width: 18px; height: 18px; }
+  .analyze-btn-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.3; }
+  .analyze-btn-title { font-size: 14px; font-weight: 700; }
+  .analyze-btn-sub { font-size: 10px; color: #999; font-weight: 500; margin-top: 2px; }
+  
+  .ai-badge {
+    background: linear-gradient(135deg, #d4a85a, #b8893f);
+    color: #fff;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 8px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-right: 6px;
+  }
+  .privacy-note {
+    font-size: 12px; color: #999;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    margin-top: 16px;
+  }
+  
+  .selection-screen { display: none; }
+  .selection-screen.active { display: block; }
+  
+  /* === Face Analysis Screen === */
+  .analysis-screen { display: none; }
+  .analysis-screen.active { display: block; }
+  
+  .analysis-preview {
+    background: #1a1a1a;
+    border-radius: 20px;
+    position: relative;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .analysis-preview video {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+  .analysis-preview canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  
+  /* الإطار الماسح (Scanning frame) - مستطيل بدل بيضاوي */
+  .scan-frame {
+    position: absolute;
+    top: 10%; left: 12%;
+    width: 76%; height: 80%;
+    border: 3px solid rgba(255,255,255,0.25);
+    border-radius: 24px;
+    pointer-events: none;
+    z-index: 5;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  /* حالة: وجه مثالي (أخضر) */
+  .scan-frame.perfect {
+    border-color: rgba(34, 197, 94, 0.95);
+    box-shadow: 0 0 40px rgba(34, 197, 94, 0.4), inset 0 0 30px rgba(34, 197, 94, 0.1);
+  }
+  /* حالة: تحذير (برتقالي) - مائل أو بعيد */
+  .scan-frame.warning {
+    border-color: rgba(255, 152, 0, 0.85);
+    box-shadow: 0 0 30px rgba(255, 152, 0, 0.3);
+  }
+  /* حالة: خطأ (أحمر) - لا يوجد وجه */
+  .scan-frame.error {
+    border-color: rgba(239, 68, 68, 0.85);
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+    animation: shake 0.5s ease-in-out;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+  
+  /* خطوط القياس الفنية في الزوايا */
+  .scan-corner {
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: rgba(255,255,255,0.6);
+    border-style: solid;
+    z-index: 6;
+    pointer-events: none;
+  }
+  .scan-corner.tl { top: 15%; left: 15%; border-width: 2px 0 0 2px; }
+  .scan-corner.tr { top: 15%; right: 15%; border-width: 2px 2px 0 0; }
+  .scan-corner.bl { bottom: 15%; left: 15%; border-width: 0 0 2px 2px; }
+  .scan-corner.br { bottom: 15%; right: 15%; border-width: 0 2px 2px 0; }
+  
+  /* خط المسح المتحرك */
+  .scan-line {
+    position: absolute;
+    top: 15%; left: 10%;
+    width: 80%; height: 2px;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      rgba(212, 168, 90, 0.8) 50%, 
+      transparent 100%);
+    box-shadow: 0 0 20px rgba(212, 168, 90, 0.6);
+    z-index: 7;
+    pointer-events: none;
+    animation: scan-move 2.5s ease-in-out infinite;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .scan-line.active { opacity: 1; }
+  @keyframes scan-move {
+    0%, 100% { top: 15%; }
+    50% { top: 80%; }
+  }
+  
+  /* رسالة التوجيه الصغيرة - فوق الإطار (ما تغطي الوجه) */
+  .guidance-bubble {
+    position: absolute;
+    top: 18px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 30px;
+    text-align: center;
+    z-index: 12;
+    max-width: 85%;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transition: all 0.3s;
+    opacity: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .guidance-bubble.show { opacity: 1; }
+  .guidance-bubble.warning {
+    background: rgba(255, 152, 0, 0.95);
+  }
+  .guidance-bubble.error {
+    background: rgba(239, 68, 68, 0.95);
+  }
+  .guidance-bubble.success {
+    background: rgba(34, 197, 94, 0.95);
+  }
+  .guidance-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .guidance-text {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .guidance-sub {
+    display: none; /* نخفي النص الفرعي عشان نوفر مساحة */
+  }
+  
+  /* النقاط الذهبية المتحركة على الوجه */
+  .face-dot {
+    position: absolute;
+    width: 6px; height: 6px;
+    background: #d4a85a;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(212, 168, 90, 0.9);
+    pointer-events: none;
+    z-index: 8;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .face-dot.show { opacity: 1; animation: dot-pulse 1.5s ease-in-out infinite; }
+  @keyframes dot-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+  
+  /* خطوط القياس بين النقاط */
+  .measure-line {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(212, 168, 90, 0.5), 
+      transparent);
+    transform-origin: 0 50%;
+    pointer-events: none;
+    z-index: 7;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .measure-line.show { opacity: 1; }
+  
+  /* شريط الخطوة في الأسفل */
+  .analysis-status-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, 
+      rgba(0,0,0,0.9) 0%, 
+      rgba(0,0,0,0.7) 60%,
+      transparent 100%);
+    padding: 30px 20px 20px;
+    color: #fff;
+    z-index: 10;
+  }
+  .analysis-step-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .analysis-step-text {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+    margin-bottom: 14px;
+    min-height: 22px;
+  }
+  .analysis-steps-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .step-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transition: all 0.3s;
+  }
+  .step-dot.active { 
+    background: #d4a85a; 
+    width: 24px;
+    border-radius: 3px;
+  }
+  .step-dot.done { background: rgba(212, 168, 90, 0.6); }
+  
+  /* علامة AI في الأسفل */
+  .ai-tech-badge {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(212, 168, 90, 0.4);
+    color: #d4a85a;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 1px;
+  }
+  .ai-tech-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: #d4a85a;
+    border-radius: 50%;
+    animation: blink 1.2s infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  
+  /* النتيجة النهائية */
+  .analysis-result-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    gap: 18px;
+    padding: 20px;
+    text-align: center;
+    z-index: 15;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .analysis-result-overlay.show { display: flex; }
+  .result-emoji {
+    font-size: 56px;
+    animation: bounce-in 0.6s ease-out;
+  }
+  @keyframes bounce-in {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .result-label {
+    font-size: 11px;
+    color: rgba(212, 168, 90, 0.9);
+    letter-spacing: 2px;
+    font-weight: 600;
+  }
+  .result-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 6px 0;
+  }
+  .result-desc {
+    font-size: 13px;
+    opacity: 0.85;
+    line-height: 1.6;
+    max-width: 260px;
+  }
+  .result-continue {
+    background: linear-gradient(135deg, #d4a85a, #b8893f);
+    color: #1a1a1a;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  
+  /* === Face Match Result Banner === */
+  .face-match-banner {
+    background: linear-gradient(135deg, #f8f8f8 0%, #fff 100%);
+    border: 1.5px solid #e8e8e8;
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .face-match-emoji {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .face-match-info {
+    flex: 1; min-width: 0;
+  }
+  .face-match-title {
+    font-size: 14px; font-weight: 700;
+    color: #1a1a1a; margin-bottom: 2px;
+  }
+  .face-match-desc {
+    font-size: 11px; color: #777;
+    line-height: 1.5;
+  }
+  
+  /* === Product card match score === */
+  .product-card { position: relative; }
+  
+  .match-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    margin-top: 4px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .match-badge.high {
+    background: linear-gradient(135deg, #1a1a1a, #444);
+  }
+  .match-badge.perfect {
+    background: linear-gradient(135deg, #b8893f, #d4a85a);
+    color: #1a1a1a;
+  }
+  .match-stars {
+    color: #d4a85a;
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+  
+  .screen-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; padding: 4px 0;
+  }
+  .back-btn {
+    background: #fff; border: 1px solid #e8e8e8; width: 38px; height: 38px;
+    border-radius: 50%; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; -webkit-appearance: none;
+  }
+  .back-btn svg { width: 18px; height: 18px; fill: #1a1a1a; }
+  .screen-title { font-size: 16px; font-weight: 600; }
+  .header-spacer { width: 38px; }
+  
+  .selection-intro { text-align: center; padding: 6px 16px 20px; }
+  .selection-intro h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .selection-intro p { font-size: 13px; color: #666; line-height: 1.6; }
+  
+  .products-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding-bottom: 20px;
+  }
+  
+  .product-card {
+    background: #fff;
+    border: 1.5px solid #f0f0f0;
+    border-radius: 16px;
+    padding: 16px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-appearance: none;
+    font-family: inherit;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .product-card:active {
+    border-color: #1a1a1a;
+    transform: scale(0.97);
+    background: #fafafa;
+  }
+  
+  .product-image-box {
+    width: 100%;
+    aspect-ratio: 16 / 6;
+    background: #f8f8f8;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    overflow: hidden;
+  }
+  .product-image-box svg, .product-image-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  
+  .product-card-name {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.3px;
+  }
+  
+  .studio { display: none; }
+  .studio.active { display: block; }
+  
+  .preview-area {
+    background: #1a1a1a; border-radius: 20px; position: relative;
+    aspect-ratio: 3/4; overflow: hidden; margin-bottom: 16px;
+  }
+  
+  #userVideo {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scaleX(-1); -webkit-transform: scaleX(-1);
+  }
+  
+  #glassesCanvas {
+    position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+  }
+  
+  .preview-status {
+    position: absolute; top: 14px; right: 14px;
+    background: rgba(255,255,255,0.95); color: #1a1a1a;
+    font-size: 11px; font-weight: 600; padding: 7px 14px;
+    border-radius: 20px; z-index: 10; display: none;
+    align-items: center; gap: 5px;
+  }
+  .preview-status.show { display: inline-flex; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+  .preview-status.warning .status-dot { background: #f59e0b; }
+  
+  .change-product-btn {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    background: rgba(255,255,255,0.95);
+    border: none;
+    padding: 10px 16px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #1a1a1a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    -webkit-appearance: none;
+    font-family: inherit;
+  }
+  .change-product-btn svg { width: 14px; height: 14px; fill: currentColor; }
+  
+  .loading-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.92);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; gap: 14px; z-index: 20; padding: 20px; text-align: center;
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2.5px solid rgba(255,255,255,0.2); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  .product-bar {
+    background: #fff; border: 1px solid #f0f0f0; border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .product-thumb {
+    width: 56px; height: 36px; background: #f5f5f5; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; padding: 4px;
+  }
+  .product-thumb svg, .product-thumb img { width: 100%; height: 100%; object-fit: contain; }
+  .product-info { flex: 1; min-width: 0; }
+  .product-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; font-family: 'Inter', sans-serif; letter-spacing: 0.3px; }
+  
+  /* === Match Card (during try-on) === */
+  .match-card {
+    background: linear-gradient(135deg, #fff 0%, #fafafa 100%);
+    border: 1.5px solid #f0f0f0;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.3s;
+  }
+  .match-card.perfect {
+    border-color: #d4a85a;
+    background: linear-gradient(135deg, #fff 0%, #fff8e8 100%);
+    box-shadow: 0 4px 16px rgba(212, 168, 90, 0.15);
+  }
+  .match-card-header {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .match-stars-row {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .match-stars-big {
+    color: #d4a85a;
+    font-size: 16px;
+    letter-spacing: 2px;
+  }
+  .match-rating-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  .match-percentage {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1a1a1a;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.5px;
+  }
+  .match-percentage.perfect { color: #b8893f; }
+  
+  .match-bar-wrap {
+    width: 100%;
+    height: 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .match-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #999, #1a1a1a);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .match-bar-fill.perfect {
+    background: linear-gradient(90deg, #d4a85a, #b8893f);
+  }
+  .match-bar-fill.high {
+    background: linear-gradient(90deg, #333, #1a1a1a);
+  }
+  
+  .match-message {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+    text-align: center;
+    margin-top: 4px;
+  }
+  .match-message.perfect {
+    color: #b8893f;
+    font-weight: 600;
+  }
+  
+  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  
+  .action-btn {
+    background: #fff; border: 1.5px solid #e8e8e8; color: #1a1a1a;
+    padding: 14px; border-radius: 12px; cursor: pointer;
+    font-size: 13px; font-family: inherit; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    -webkit-appearance: none;
+  }
+  .action-btn:active { background: #f5f5f5; }
+  .action-btn svg { width: 16px; height: 16px; }
+  .action-btn.primary {
+    background: #1a1a1a; border-color: #1a1a1a; color: #fff;
+    grid-column: span 2; padding: 16px; font-size: 14px;
+  }
+  .action-btn.primary:active { background: #333; }
+  
+  .toast {
+    position: fixed; bottom: 30px; left: 50%;
+    transform: translateX(-50%) translateY(120px);
+    background: #1a1a1a; color: #fff; padding: 13px 22px;
+    border-radius: 30px; font-size: 13px; z-index: 100;
+    transition: transform 0.3s; max-width: 90%; text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="welcome" id="welcomeScreen">
+    <div class="welcome-icon">
+      <svg viewBox="0 0 24 24"><path d="M3 9c0-2 1-3 3-3h2l1-2h6l1 2h2c2 0 3 1 3 3v8c0 2-1 3-3 3H6c-2 0-3-1-3-3V9zm9 8c2.5 0 4.5-2 4.5-4.5S14.5 8 12 8s-4.5 2-4.5 4.5S9.5 17 12 17z"/></svg>
+    </div>
+    
+    <h1 class="welcome-title">جربها قبل ما تشتريها</h1>
+    <p class="welcome-sub">اختر النظارة وشوف كيف تبين على وجهك مباشرة</p>
+    
+    <button class="start-btn" id="startBtn">
+      اختر نظارة وابدأ
+      <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" transform="scale(-1 1) translate(-24 0)"/></svg>
+    </button>
+    
+    <br>
+    
+    <button class="analyze-btn" id="analyzeFaceBtn">
+      <svg viewBox="0 0 24 24" fill="#d4a85a"><path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25-.56-1.25-1.25-1.25zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-.29.02-.58.05-.86 2.36-1.05 4.23-2.98 5.21-5.37C11.07 8.33 14.05 10 17.42 10c.78 0 1.53-.09 2.25-.26.21.71.33 1.47.33 2.26 0 4.41-3.59 8-8 8z"/></svg>
+      <span class="analyze-btn-text">
+        <span class="analyze-btn-title"><span class="ai-badge">AI</span>حلّل وجهك أولاً</span>
+        <span class="analyze-btn-sub">للحصول على توصيات ذكية</span>
+      </span>
+    </button>
+    
+    <div class="privacy-note">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      صورك ما تطلع من جهازك أبداً
+    </div>
+  </div>
+
+  <!-- شاشة تحليل الوجه - فخمة وتقنية -->
+  <div class="analysis-screen" id="analysisScreen">
+    <div class="screen-header">
+      <button class="back-btn" id="analysisBackBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 4l1.41 1.41L7.83 11H20v2H7.83l5.58 5.59L12 20l-8-8 8-8z"/></svg>
+      </button>
+      <div class="screen-title">تحليل عميق للوجه</div>
+      <div class="header-spacer"></div>
+    </div>
+    
+    <div class="analysis-preview">
+      <video id="analysisVideo" autoplay playsinline muted webkit-playsinline></video>
+      <canvas id="analysisCanvas"></canvas>
+      
+      <!-- شارة AI تقنية -->
+      <div class="ai-tech-badge">AI ACTIVE</div>
+      
+      <!-- زوايا الإطار الفنية -->
+      <div class="scan-corner tl"></div>
+      <div class="scan-corner tr"></div>
+      <div class="scan-corner bl"></div>
+      <div class="scan-corner br"></div>
+      
+      <!-- إطار التركيز -->
+      <div class="scan-frame" id="scanFrame"></div>
+      
+      <!-- خط المسح المتحرك -->
+      <div class="scan-line" id="scanLine"></div>
+      
+      <!-- فقاعة التوجيه الذكية -->
+      <div class="guidance-bubble" id="guidanceBubble">
+        <span class="guidance-icon" id="guidanceIcon">📷</span>
+        <div class="guidance-text" id="guidanceText">ابحث عن وجهك...</div>
+        <div class="guidance-sub" id="guidanceSub">انتظر لحظة</div>
+      </div>
+      
+      <!-- النقاط الذهبية على الوجه (10 نقاط) -->
+      <div class="face-dot" id="dot1"></div>
+      <div class="face-dot" id="dot2"></div>
+      <div class="face-dot" id="dot3"></div>
+      <div class="face-dot" id="dot4"></div>
+      <div class="face-dot" id="dot5"></div>
+      <div class="face-dot" id="dot6"></div>
+      <div class="face-dot" id="dot7"></div>
+      <div class="face-dot" id="dot8"></div>
+      <div class="face-dot" id="dot9"></div>
+      <div class="face-dot" id="dot10"></div>
+      
+      <!-- خطوط القياس -->
+      <div class="measure-line" id="line1"></div>
+      <div class="measure-line" id="line2"></div>
+      <div class="measure-line" id="line3"></div>
+      
+      <!-- شريط الحالة في الأسفل -->
+      <div class="analysis-status-bar">
+        <div class="analysis-step-label" id="analysisStepLabel">خطوة 1 من 4</div>
+        <div class="analysis-step-text" id="analysisStepText">ابتسم وثبّت وجهك للأمام</div>
+        <div class="analysis-steps-dots">
+          <div class="step-dot active" id="stepDot1"></div>
+          <div class="step-dot" id="stepDot2"></div>
+          <div class="step-dot" id="stepDot3"></div>
+          <div class="step-dot" id="stepDot4"></div>
+        </div>
+      </div>
+      
+      <!-- شاشة النتيجة النهائية -->
+      <div class="analysis-result-overlay" id="analysisResultOverlay">
+        <div class="result-label">تم التحليل بنجاح</div>
+        <div class="result-emoji" id="resultEmoji">✨</div>
+        <div class="result-title" id="resultTitle">وجهك بيضاوي</div>
+        <div class="result-desc" id="resultDesc">-</div>
+        <button class="result-continue" id="resultContinueBtn">
+          شوف النظارات المناسبة لك
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" transform="scale(-1 1) translate(-24 0)"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="selection-screen" id="selectionScreen">
+    <div class="screen-header">
+      <button class="back-btn" id="selectionBackBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 4l1.41 1.41L7.83 11H20v2H7.83l5.58 5.59L12 20l-8-8 8-8z"/></svg>
+      </button>
+      <div class="screen-title">اختر النظارة</div>
+      <div class="header-spacer"></div>
+    </div>
+    
+    <!-- سطر نتيجة التحليل -->
+    <div class="face-match-banner" id="faceMatchBanner" style="display:none;">
+      <div class="face-match-emoji" id="faceMatchEmoji">✨</div>
+      <div class="face-match-info">
+        <div class="face-match-title" id="faceMatchTitle">وجهك بيضاوي</div>
+        <div class="face-match-desc" id="faceMatchDesc">رتّبنا النظارات الأنسب لك</div>
+      </div>
+    </div>
+    
+    <div class="products-grid" id="productsGrid"></div>
+  </div>
+
+  <div class="studio" id="studioScreen">
+    
+    <div class="screen-header">
+      <button class="back-btn" id="backBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 4l1.41 1.41L7.83 11H20v2H7.83l5.58 5.59L12 20l-8-8 8-8z"/></svg>
+      </button>
+      <div class="screen-title">التجربة الافتراضية</div>
+      <div class="header-spacer"></div>
+    </div>
+    
+    <div class="preview-area" id="previewArea">
+      <video id="userVideo" autoplay playsinline muted webkit-playsinline></video>
+      <canvas id="glassesCanvas"></canvas>
+      
+      <div class="preview-status" id="previewStatus">
+        <span class="status-dot"></span>
+        <span id="statusText"></span>
+      </div>
+      
+      <button class="change-product-btn" id="changeProductBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 6V3L8 7l4 4V8c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 17.03 20 15.57 20 14c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 9.74C4.46 10.97 4 12.43 4 14c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+        غيّر النظارة
+      </button>
+      
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p id="loadingMessage" style="font-size: 13px;">جاري التحميل...</p>
+      </div>
+    </div>
+    
+    <div class="product-bar">
+      <div class="product-thumb" id="currentProductThumb"></div>
+      <div class="product-info">
+        <div class="product-name" id="currentProductName">-</div>
+      </div>
+    </div>
+    
+    <!-- بطاقة تطابق النظارة مع شكل الوجه -->
+    <div class="match-card" id="matchCard" style="display:none;">
+      <div class="match-card-header">
+        <div class="match-stars-row">
+          <div class="match-stars-big" id="matchStarsBig">★★★★★</div>
+          <div class="match-rating-text" id="matchRatingText">ممتاز</div>
+        </div>
+        <div class="match-percentage" id="matchPercentage">0%</div>
+      </div>
+      <div class="match-bar-wrap">
+        <div class="match-bar-fill" id="matchBarFill"></div>
+      </div>
+      <div class="match-message" id="matchMessage">-</div>
+    </div>
+    
+    <div class="action-grid">
+      <button class="action-btn primary" id="downloadBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        احفظ الصورة
+      </button>
+      <button class="action-btn" id="shareBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+        مشاركة
+      </button>
+      <button class="action-btn" id="buyBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1z"/></svg>
+        تسوّق
+      </button>
+    </div>
+    
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+
+<script>
+// ============================================
+// المنتجات - Clear Grant بصورة حقيقية، الباقي SVG
+// ============================================
+var PRODUCTS = [
+  {
+    id: 'clear-grant',
+    name: 'CLEAR GRANT',
+    type: 'image',
+    src: 'clear-grant.png',
+    // شكل دائري ناعم - يناسب الوجوه المربعة والمعينة
+    suitsShapes: { 'square': 5, 'diamond': 5, 'heart': 4, 'oval': 4, 'round': 2, 'oblong': 3 }
+  },
+  {
+    id: 'urban',
+    name: 'URBAN',
+    type: 'image',
+    src: 'urban.png',
+    // إطار مستطيل عريض - يناسب الوجوه الدائرية والمستطيلة
+    suitsShapes: { 'round': 5, 'oblong': 5, 'oval': 4, 'heart': 4, 'diamond': 3, 'square': 2 }
+  },
+  {
+    id: 'gold-os',
+    name: "GOLD O'S",
+    type: 'image',
+    src: 'gold-os.png',
+    // سداسي بدون إطار - يناسب وجوه القلب والمعين
+    suitsShapes: { 'heart': 5, 'diamond': 5, 'oval': 5, 'square': 4, 'round': 3, 'oblong': 3 }
+  },
+  {
+    id: 'otto-lens',
+    name: 'OTTO LENS',
+    type: 'image',
+    src: 'otto-lens.png',
+    // سداسي بدون إطار أسود - يناسب القلب والمعين
+    suitsShapes: { 'heart': 5, 'diamond': 5, 'oval': 4, 'square': 4, 'round': 3, 'oblong': 3 }
+  }
+];
+
+// معلومات أشكال الوجه
+var FACE_SHAPES = {
+  'oval': { name: 'بيضاوي', emoji: '✨', desc: 'وجه متناسق - كل النظارات تليق بك' },
+  'round': { name: 'دائري', emoji: '⭕', desc: 'النظارات الزاوية تضفي حدة جذابة' },
+  'square': { name: 'مربع', emoji: '⬜', desc: 'النظارات الدائرية تلطّف ملامحك' },
+  'heart': { name: 'قلب', emoji: '💛', desc: 'النظارات السفلية العريضة تليق بك' },
+  'diamond': { name: 'معيّن', emoji: '💎', desc: 'النظارات بدون إطار تبرز جمالك' },
+  'oblong': { name: 'مستطيل', emoji: '📐', desc: 'النظارات العريضة توازن وجهك' }
+};
+
+// ====================================================
+var state = { 
+  selectedProduct: null, 
+  faceMesh: null, 
+  videoStream: null, 
+  isProcessing: false, 
+  active: false,
+  faceShape: null,        // شكل الوجه المكتشف
+  isAnalyzing: false,     // هل في حالة تحليل؟
+  analysisSamples: []     // عينات للتحليل (نأخذ متوسط)
+};
+
+// تحديث فقاعة التوجيه حسب حالة الوجه
+function updateGuidance(quality) {
+  var bubble = $('guidanceBubble');
+  var icon = $('guidanceIcon');
+  var text = $('guidanceText');
+  var sub = $('guidanceSub');
+  var frame = $('scanFrame');
+  var scanLine = $('scanLine');
+  
+  if (!bubble) return;
+  
+  bubble.classList.add('show');
+  text.textContent = quality.message;
+  sub.textContent = quality.sub || '';
+  
+  // إعادة تعيين الكلاسات
+  bubble.className = 'guidance-bubble show';
+  frame.className = 'scan-frame';
+  scanLine.classList.remove('active');
+  
+  switch(quality.status) {
+    case 'no_face':
+      icon.textContent = '👤';
+      bubble.classList.add('error');
+      frame.classList.add('error');
+      break;
+    case 'too_far':
+      icon.textContent = '🔍';
+      bubble.classList.add('warning');
+      frame.classList.add('warning');
+      break;
+    case 'too_close':
+      icon.textContent = '👋';
+      bubble.classList.add('warning');
+      frame.classList.add('warning');
+      break;
+    case 'tilted_horizontal':
+      icon.textContent = '↔️';
+      bubble.classList.add('warning');
+      frame.classList.add('warning');
+      break;
+    case 'tilted_up':
+      icon.textContent = '⬇️';
+      bubble.classList.add('warning');
+      frame.classList.add('warning');
+      break;
+    case 'tilted_down':
+      icon.textContent = '⬆️';
+      bubble.classList.add('warning');
+      frame.classList.add('warning');
+      break;
+    case 'rolled':
+      icon.textContent = '🔄';
+      bubble.classList.add('warning');
+      frame.classList.add('warning');
+      break;
+    case 'perfect':
+      icon.textContent = '✨';
+      bubble.classList.add('success');
+      frame.classList.add('perfect');
+      scanLine.classList.add('active');
+      break;
+  }
+}
+
+function hideGuidance() {
+  var bubble = $('guidanceBubble');
+  if (bubble) bubble.classList.remove('show');
+}
+
+
+function checkFaceQuality(landmarks) {
+  if (!landmarks || landmarks.length < 400) {
+    return { status: 'no_face', message: 'ضع وجهك داخل الإطار', sub: 'تأكد من وضوح الإضاءة' };
+  }
+  
+  var forehead   = landmarks[10];
+  var chin       = landmarks[152];
+  var cheekL     = landmarks[234];
+  var cheekR     = landmarks[454];
+  var noseTip    = landmarks[1];
+  var noseBridge = landmarks[168];
+  
+  if (!forehead || !chin || !cheekL || !cheekR || !noseTip) {
+    return { status: 'no_face', message: 'ضع وجهك داخل الإطار', sub: 'تأكد من وضوح الإضاءة' };
+  }
+  
+  // 1. حساب حجم الوجه (هل قريب أم بعيد؟)
+  var faceLength = Math.sqrt(
+    Math.pow(chin.x - forehead.x, 2) + 
+    Math.pow(chin.y - forehead.y, 2)
+  );
+  var cheekWidth = Math.sqrt(
+    Math.pow(cheekR.x - cheekL.x, 2) + 
+    Math.pow(cheekR.y - cheekL.y, 2)
+  );
+  
+  // الوجه بعيد جداً
+  if (faceLength < 0.25 || cheekWidth < 0.18) {
+    return { status: 'too_far', message: 'اقترب من الكاميرا', sub: 'وجهك صغير في الإطار' };
+  }
+  
+  // الوجه قريب جداً (يخرج عن الإطار)
+  if (faceLength > 0.75 || cheekWidth > 0.65) {
+    return { status: 'too_close', message: 'ابتعد عن الكاميرا شوي', sub: 'وجهك قريب جداً' };
+  }
+  
+  // 2. حساب اللف الجانبي (Yaw) - يمين/يسار
+  var faceCenterX = (cheekL.x + cheekR.x) / 2;
+  var noseDeviation = noseTip.x - faceCenterX;
+  var yawRatio = Math.abs(noseDeviation) / (cheekWidth / 2);
+  
+  if (yawRatio > 0.25) {
+    var direction = noseDeviation > 0 ? 'يمين' : 'يسار';
+    return { 
+      status: 'tilted_horizontal', 
+      message: 'وجّه راسك للأمام', 
+      sub: 'راسك مائل لل' + direction 
+    };
+  }
+  
+  // 3. حساب الميل الرأسي (Pitch)
+  var noseToForeheadY = Math.abs(noseBridge.y - forehead.y);
+  var noseToChinY = Math.abs(chin.y - noseBridge.y);
+  var pitchRatio = noseToForeheadY / (noseToForeheadY + noseToChinY);
+  
+  if (pitchRatio < 0.28) {
+    return { status: 'tilted_up', message: 'انزل راسك شوي', sub: 'رأسك مرفوع للأعلى' };
+  }
+  if (pitchRatio > 0.52) {
+    return { status: 'tilted_down', message: 'ارفع راسك شوي', sub: 'رأسك منزل للأسفل' };
+  }
+  
+  // 4. الميل الجانبي (Roll)
+  var dx = cheekR.x - cheekL.x;
+  var dy = cheekR.y - cheekL.y;
+  var rollAngle = Math.abs(Math.atan2(dy, dx));
+  
+  if (rollAngle > 0.15) {
+    return { status: 'rolled', message: 'عدّل ميل راسك', sub: 'حاول أن يكون مستقيماً' };
+  }
+  
+  return { status: 'perfect', message: 'ممتاز! ثبّت وضعك', sub: 'يتم التحليل الآن...' };
+}
+
+// ============================================
+// تحليل شكل الوجه - نظام نقاط متوازن مع تحقق
+// ============================================
+function analyzeFaceShape(landmarks) {
+  if (!landmarks || landmarks.length < 400) return null;
+  
+  // النقاط المرجعية على الوجه
+  var forehead   = landmarks[10];
+  var chin       = landmarks[152];
+  var foreheadL  = landmarks[103];
+  var foreheadR  = landmarks[332];
+  var cheekL     = landmarks[234];
+  var cheekR     = landmarks[454];
+  var jawL       = landmarks[172];
+  var jawR       = landmarks[397];
+  var chinL      = landmarks[148];
+  var chinR      = landmarks[377];
+  var cheekboneL = landmarks[123];
+  var cheekboneR = landmarks[352];
+  
+  // ==========================================
+  // التحقق من صحة البيانات
+  // ==========================================
+  // نتأكد إن كل النقاط موجودة
+  var requiredPoints = [forehead, chin, foreheadL, foreheadR, cheekL, cheekR, jawL, jawR, chinL, chinR, cheekboneL, cheekboneR];
+  for (var i = 0; i < requiredPoints.length; i++) {
+    var pt = requiredPoints[i];
+    if (!pt || typeof pt.x !== 'number' || typeof pt.y !== 'number') return null;
+  }
+  
+  // القياسات الأساسية
+  var faceLength = Math.sqrt(
+    Math.pow(chin.x - forehead.x, 2) + 
+    Math.pow(chin.y - forehead.y, 2)
+  );
+  var foreheadWidth = Math.sqrt(
+    Math.pow(foreheadR.x - foreheadL.x, 2) + 
+    Math.pow(foreheadR.y - foreheadL.y, 2)
+  );
+  var cheekWidth = Math.sqrt(
+    Math.pow(cheekR.x - cheekL.x, 2) + 
+    Math.pow(cheekR.y - cheekL.y, 2)
+  );
+  var jawWidth = Math.sqrt(
+    Math.pow(jawR.x - jawL.x, 2) + 
+    Math.pow(jawR.y - jawL.y, 2)
+  );
+  
+  // التحقق: الوجه لازم يكون له حجم معقول في الإطار
+  // إذا الوجه صغير جداً أو القياسات صفر = الوجه مش موجود فعلاً
+  if (faceLength < 0.15 || cheekWidth < 0.1 || foreheadWidth < 0.05 || jawWidth < 0.05) {
+    return null; // الوجه مش واضح بما يكفي
+  }
+  
+  // التحقق: الوجه لازم يكون متناظر (مش مائل بشدة)
+  var faceCenterX = (cheekL.x + cheekR.x) / 2;
+  var foreheadCenterX = (foreheadL.x + foreheadR.x) / 2;
+  var faceTilt = Math.abs(faceCenterX - foreheadCenterX);
+  if (faceTilt > 0.05) {
+    return null; // الوجه مائل بشدة
+  }
+  
+  // ==========================================
+  // الحسابات
+  // ==========================================
+  
+  // زاوية الذقن
+  var v1x = chinL.x - chin.x, v1y = chinL.y - chin.y;
+  var v2x = chinR.x - chin.x, v2y = chinR.y - chin.y;
+  var mag1 = Math.sqrt(v1x*v1x + v1y*v1y);
+  var mag2 = Math.sqrt(v2x*v2x + v2y*v2y);
+  
+  // حماية من القسمة على صفر
+  if (mag1 < 0.001 || mag2 < 0.001) return null;
+  
+  var dotProduct = v1x * v2x + v1y * v2y;
+  var chinAngle = Math.acos(Math.max(-1, Math.min(1, dotProduct / (mag1 * mag2))));
+  var chinSharpness = 1 - (chinAngle / Math.PI);
+  
+  // بروز عظمة الوجنة
+  var cheekboneWidth = Math.sqrt(
+    Math.pow(cheekboneR.x - cheekboneL.x, 2) + 
+    Math.pow(cheekboneR.y - cheekboneL.y, 2)
+  );
+  var cheekboneProminence = cheekWidth > 0 ? cheekboneWidth / cheekWidth : 1;
+  
+  // النسب الأساسية
+  var widestPart = Math.max(foreheadWidth, cheekWidth, jawWidth);
+  var lengthToWidth = faceLength / widestPart;
+  var foreheadToCheek = foreheadWidth / cheekWidth;
+  var jawToCheek = jawWidth / cheekWidth;
+  var foreheadToJaw = jawWidth > 0 ? foreheadWidth / jawWidth : 1;
+  
+  // ==========================================
+  // نظام نقاط متوازن
+  // ==========================================
+  var scores = {
+    oval: 0,
+    round: 0,
+    square: 0,
+    heart: 0,
+    diamond: 0,
+    oblong: 0
+  };
+  
+  // ----- مستطيل (Oblong) -----
+  if (lengthToWidth > 1.5) scores.oblong += 50;
+  else if (lengthToWidth > 1.35) scores.oblong += 25;
+  
+  // ----- بيضاوي (Oval) - الشكل الأكثر شيوعاً -----
+  // البيضاوي هو الـ default - يحصل نقاط لأنه طبيعي
+  if (lengthToWidth >= 1.25 && lengthToWidth <= 1.5) scores.oval += 30;
+  if (foreheadToJaw >= 1.0 && foreheadToJaw <= 1.3) scores.oval += 20;
+  if (jawToCheek >= 0.7 && jawToCheek <= 0.92) scores.oval += 15;
+  if (chinSharpness >= 0.35 && chinSharpness <= 0.55) scores.oval += 15;
+  
+  // ----- دائري (Round) -----
+  if (lengthToWidth < 1.2) scores.round += 35;
+  if (chinSharpness < 0.4) scores.round += 25;
+  if (Math.abs(foreheadToCheek - jawToCheek) < 0.08) scores.round += 15;
+  
+  // ----- مربع (Square) -----
+  if (lengthToWidth < 1.25 && jawToCheek > 0.9) scores.square += 40;
+  if (chinSharpness > 0.55) scores.square += 25;
+  if (Math.abs(foreheadToCheek - 1) < 0.08 && jawToCheek > 0.88) scores.square += 20;
+  
+  // ----- قلب (Heart) -----
+  if (foreheadToJaw > 1.3) scores.heart += 40;
+  else if (foreheadToJaw > 1.18) scores.heart += 20;
+  if (jawToCheek < 0.75) scores.heart += 25;
+  if (chinSharpness > 0.55 && foreheadToJaw > 1.15) scores.heart += 15;
+  
+  // ----- معيّن (Diamond) - نزّلنا الأوزان -----
+  // شروط أصرم عشان ما يطلع غلط
+  if (foreheadToCheek < 0.80 && jawToCheek < 0.80 && lengthToWidth > 1.2) {
+    scores.diamond += 35;
+  }
+  if (cheekboneProminence > 1.05 && foreheadToCheek < 0.85) {
+    scores.diamond += 20;
+  }
+  
+  // ==========================================
+  // اختيار النتيجة
+  // ==========================================
+  var bestShape = 'oval';
+  var bestScore = 0;
+  for (var shape in scores) {
+    if (scores[shape] > bestScore) {
+      bestScore = scores[shape];
+      bestShape = shape;
+    }
+  }
+  
+  // إذا النقاط ضعيفة جداً، نرجع null (مش تخمين)
+  if (bestScore < 25) return null;
+  
+  return bestShape;
+}
+
+function getMatchScore(product, faceShape) {
+  if (!faceShape || !product.suitsShapes) return 3;
+  return product.suitsShapes[faceShape] || 3;
+}
+
+// رسائل مخصصة حسب التطابق وشكل الوجه
+function getMatchMessage(score, faceShape, productName) {
+  if (!faceShape || !FACE_SHAPES[faceShape]) {
+    return 'جربها وشوف كيف تليق عليك';
+  }
+  var shapeName = FACE_SHAPES[faceShape].name;
+  
+  if (score >= 5) {
+    var perfectMsgs = [
+      'اختيار مثالي - ' + productName + ' صُممت لوجهك ال' + shapeName,
+      'انسجام تام مع ملامحك - تليق بك جداً ✨',
+      'ما فيه أنسب منها لوجهك ال' + shapeName,
+      productName + ' = أنت. تطابق ممتاز 🏆'
+    ];
+    return perfectMsgs[Math.floor(Math.random() * perfectMsgs.length)];
+  }
+  if (score >= 4) {
+    return 'تليق بك جداً - تكمّل ملامح وجهك ال' + shapeName;
+  }
+  if (score >= 3) {
+    return 'اختيار جيد - تناسب وجهك بشكل مقبول';
+  }
+  return 'جربها، قد تفاجئك وتعجبك على وجهك';
+}
+
+function getRatingText(score) {
+  if (score >= 5) return 'تطابق ممتاز';
+  if (score >= 4) return 'تطابق عالي';
+  if (score >= 3) return 'تطابق جيد';
+  if (score >= 2) return 'تطابق متوسط';
+  return 'جربها';
+}
+
+// نحول النقاط (1-5) لنسبة مئوية واقعية
+function scoreToPercentage(score) {
+  // 5 -> 92-98%
+  // 4 -> 78-88%
+  // 3 -> 65-75%
+  // 2 -> 50-60%
+  if (score >= 5) return 92 + Math.floor(Math.random() * 7);
+  if (score >= 4) return 78 + Math.floor(Math.random() * 11);
+  if (score >= 3) return 65 + Math.floor(Math.random() * 11);
+  if (score >= 2) return 50 + Math.floor(Math.random() * 11);
+  return 40 + Math.floor(Math.random() * 11);
+}
+
+function getMatchLabel(score) {
+  if (score >= 5) return { text: 'مثالية لك', cls: 'perfect' };
+  if (score >= 4) return { text: 'تليق بك', cls: 'high' };
+  if (score >= 3) return { text: 'مناسبة', cls: '' };
+  return { text: 'جربها', cls: '' };
+}
+
+function getStars(score) {
+  var full = '★';
+  var empty = '☆';
+  return full.repeat(score) + empty.repeat(5 - score);
+}
+
+var glassesImg = null;
+var glassesLoaded = false;
+
+function loadGlassesImage(product) {
+  return new Promise(function(resolve, reject) {
+    var rawImg = new Image();
+    rawImg.crossOrigin = 'anonymous';
+    rawImg.onload = function() {
+      // نقلب الصورة رأسياً (vertical flip) عشان تطلع مظبوطة على الوجه
+      var tempCanvas = document.createElement('canvas');
+      tempCanvas.width = rawImg.width;
+      tempCanvas.height = rawImg.height;
+      var tempCtx = tempCanvas.getContext('2d');
+      // قلب رأسي: scale(1, -1) ثم نقل لأسفل
+      tempCtx.translate(0, rawImg.height);
+      tempCtx.scale(1, -1);
+      tempCtx.drawImage(rawImg, 0, 0);
+      
+      var flippedImg = new Image();
+      flippedImg.onload = function() {
+        glassesImg = flippedImg;
+        glassesLoaded = true;
+        resolve(flippedImg);
+      };
+      flippedImg.onerror = function() { reject(new Error('flip failed')); };
+      flippedImg.src = tempCanvas.toDataURL('image/png');
+    };
+    rawImg.onerror = function() { reject(new Error('failed')); };
+    
+    if (product.type === 'image') {
+      rawImg.src = product.src;
+    } else {
+      var uid = 'g' + Date.now() + Math.random().toString(36).substr(2, 5);
+      var svgStr = product.svg.split('XID').join(uid);
+      var blob = new Blob([svgStr], { type: 'image/svg+xml' });
+      rawImg.src = URL.createObjectURL(blob);
+    }
+  });
+}
+
+function renderProductPreview(product) {
+  if (product.type === 'image') {
+    return '<img src="' + product.src + '" alt="' + product.name + '">';
+  } else {
+    var uid = 'p' + Date.now() + Math.random().toString(36).substr(2, 5);
+    return product.svg.split('XID').join(uid);
+  }
+}
+
+var $ = function(id) { return document.getElementById(id); };
+var welcomeScreen, selectionScreen, studioScreen, userVideo, glassesCanvas, previewArea, previewStatus, statusText, loadingOverlay, loadingMessage, toast, ctx;
+var lastDetection = null;
+var smoothed = null;
+
+function smooth(prev, curr, f) { f = f || 0.4; if (prev === null || prev === undefined) return curr; return prev * (1 - f) + curr * f; }
+
+function smoothDetection(curr) {
+  if (!smoothed) { smoothed = JSON.parse(JSON.stringify(curr)); return smoothed; }
+  smoothed.x = smooth(smoothed.x, curr.x, 0.5);
+  smoothed.y = smooth(smoothed.y, curr.y, 0.5);
+  smoothed.width = smooth(smoothed.width, curr.width, 0.4);
+  smoothed.roll = smooth(smoothed.roll, curr.roll, 0.5);
+  smoothed.yaw = smooth(smoothed.yaw, curr.yaw, 0.4);
+  smoothed.pitch = smooth(smoothed.pitch, curr.pitch, 0.4);
+  return smoothed;
+}
+
+function drawGlasses(det) {
+  if (!glassesLoaded || !glassesImg) return;
+  var w = det.width;
+  var h = w * (glassesImg.height / glassesImg.width);
+  ctx.save();
+  ctx.translate(det.x, det.y);
+  ctx.rotate(det.roll || 0);
+  var pitchScale = Math.cos(det.pitch || 0);
+  if (pitchScale < 0.3) pitchScale = 0.3;
+  var yawAbs = Math.abs(det.yaw || 0);
+  var yawScale = Math.cos(det.yaw || 0);
+  if (yawScale < 0.2) yawScale = 0.2;
+  
+  // تدريج ناعم: النظارة تختفي تدريجياً مع اللف للجانب
+  var fadeStart = Math.PI / 3;      // 60 درجة - تبدأ التلاشي
+  var fadeEnd = Math.PI / 2;        // 90 درجة - تختفي تماماً
+  var opacity = 1.0;
+  if (yawAbs > fadeStart) {
+    if (yawAbs >= fadeEnd) {
+      opacity = 0;
+    } else {
+      opacity = 1 - (yawAbs - fadeStart) / (fadeEnd - fadeStart);
+    }
+  }
+  
+  ctx.globalAlpha = opacity;
+  ctx.scale(yawScale, pitchScale);
+  
+  if (opacity > 0.01) {
+    ctx.drawImage(glassesImg, -w/2, -h/2, w, h);
+  }
+  ctx.restore();
+}
+
+function fitCanvas() {
+  var rect = previewArea.getBoundingClientRect();
+  var dpr = window.devicePixelRatio || 1;
+  glassesCanvas.width = rect.width * dpr;
+  glassesCanvas.height = rect.height * dpr;
+  glassesCanvas.style.width = rect.width + 'px';
+  glassesCanvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+}
+
+function initFaceMesh() {
+  return new Promise(function(resolve, reject) {
+    if (state.faceMesh) { resolve(state.faceMesh); return; }
+    if (typeof FaceMesh === 'undefined') { reject(new Error('Library not loaded')); return; }
+    try {
+      var fm = new FaceMesh({ locateFile: function(file) { return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/' + file; } });
+      fm.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+      fm.onResults(onFaceMeshResults);
+      state.faceMesh = fm;
+      resolve(fm);
+    } catch (err) { reject(err); }
+  });
+}
+
+function projectPoint(lm, sw, sh, cw, ch, mirror) {
+  var sa = sw / sh, ca = cw / ch, dw, dh, ox, oy;
+  if (sa > ca) { dh = ch; dw = ch * sa; ox = (cw - dw) / 2; oy = 0; }
+  else { dw = cw; dh = cw / sa; ox = 0; oy = (ch - dh) / 2; }
+  var px = lm.x * dw + ox, py = lm.y * dh + oy;
+  if (mirror) px = cw - px;
+  return { x: px, y: py };
+}
+
+function onFaceMeshResults(results) {
+  var dpr = window.devicePixelRatio || 1;
+  var logicalW = glassesCanvas.width / dpr;
+  var logicalH = glassesCanvas.height / dpr;
+  ctx.clearRect(0, 0, logicalW, logicalH);
+  if (!results.multiFaceLandmarks || !results.multiFaceLandmarks.length) {
+    showStatus('وجّه وجهك للكاميرا', 'warning');
+    return;
+  }
+  var lm = results.multiFaceLandmarks[0];
+  
+  // ==========================================
+  // حساب تطابق تلقائي إذا ما عندنا تحليل مسبق
+  // ==========================================
+  if (!state.faceShape && state.selectedProduct) {
+    if (!state.autoSamples) state.autoSamples = [];
+    var shape = analyzeFaceShape(lm);
+    
+    // نقبل العينة فقط إذا كانت صحيحة (مش null)
+    if (shape !== null) {
+      state.autoSamples.push(shape);
+    }
+    
+    // نحتاج 20 عينة صالحة (مش 15) عشان دقة أعلى
+    if (state.autoSamples.length >= 20) {
+      var counts = {};
+      for (var i = 0; i < state.autoSamples.length; i++) {
+        var s = state.autoSamples[i];
+        counts[s] = (counts[s] || 0) + 1;
+      }
+      var maxCount = 0;
+      var finalShape = 'oval';
+      for (var key in counts) {
+        if (counts[key] > maxCount) {
+          maxCount = counts[key];
+          finalShape = key;
+        }
+      }
+      
+      // نشترط 60% توافق بين العينات (وإلا نرجع بيضاوي)
+      var confidence = maxCount / state.autoSamples.length;
+      if (confidence < 0.6) finalShape = 'oval';
+      
+      state.faceShape = finalShape;
+      state.autoSamples = null;
+      
+      showMatchCard(state.selectedProduct);
+    }
+  }
+  
+  var cw = logicalW, ch = logicalH;
+  var sw = userVideo.videoWidth, sh = userVideo.videoHeight;
+  if (!sw || !sh) return;
+  var leftEye = projectPoint(lm[33], sw, sh, cw, ch, true);
+  var rightEye = projectPoint(lm[263], sw, sh, cw, ch, true);
+  var noseTip = projectPoint(lm[1], sw, sh, cw, ch, true);
+  var forehead = projectPoint(lm[10], sw, sh, cw, ch, true);
+  var chin = projectPoint(lm[152], sw, sh, cw, ch, true);
+  var eyeMidX = (leftEye.x + rightEye.x) / 2;
+  var eyeMidY = (leftEye.y + rightEye.y) / 2;
+  var eyeDist = Math.sqrt(Math.pow(rightEye.x - leftEye.x, 2) + Math.pow(rightEye.y - leftEye.y, 2));
+  var w = eyeDist * 1.7;
+  var maxW = cw * 0.8;
+  if (w > maxW) w = maxW;
+  var cx = eyeMidX;
+  var cy = eyeMidY + eyeDist * 0.15;
+  var roll = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
+  var faceW = eyeDist;
+  var yaw = -Math.atan((noseTip.x - eyeMidX) / (faceW / 2) * 0.8);
+  var foreheadDist = Math.sqrt(Math.pow(forehead.x - eyeMidX, 2) + Math.pow(forehead.y - eyeMidY, 2));
+  var chinDist = Math.sqrt(Math.pow(chin.x - eyeMidX, 2) + Math.pow(chin.y - eyeMidY, 2));
+  var pitch = (chinDist / (foreheadDist + chinDist) - 0.65) * 1.5;
+  lastDetection = smoothDetection({ x: cx, y: cy, width: w, roll: roll, yaw: yaw, pitch: pitch });
+  drawGlasses(lastDetection);
+  showStatus('جاهز', '');
+}
+
+// عرض بطاقة التطابق بأنيميشن
+function showMatchCard(product) {
+  var card = $('matchCard');
+  
+  // لو ما فيه تحليل وجه - نعرض حالة "تحليل لحظي"
+  if (!state.faceShape) {
+    card.style.display = 'block';
+    card.className = 'match-card';
+    $('matchStarsBig').textContent = '✨';
+    $('matchRatingText').textContent = 'جاري التحليل...';
+    $('matchPercentage').textContent = '...';
+    $('matchPercentage').className = 'match-percentage';
+    $('matchMessage').textContent = 'نحلل ملامحك ونحسب نسبة التطابق';
+    $('matchMessage').className = 'match-message';
+    $('matchBarFill').className = 'match-bar-fill';
+    $('matchBarFill').style.width = '15%';
+    return;
+  }
+  
+  var score = getMatchScore(product, state.faceShape);
+  var percentage = scoreToPercentage(score);
+  var ratingText = getRatingText(score);
+  var message = getMatchMessage(score, state.faceShape, product.name);
+  
+  // تحديث محتوى البطاقة
+  $('matchStarsBig').textContent = getStars(score);
+  $('matchRatingText').textContent = ratingText;
+  $('matchMessage').textContent = message;
+  
+  // إضافة كلاس "perfect" للتطابق العالي جداً
+  var isPerfect = score >= 5;
+  var isHigh = score >= 4;
+  
+  card.className = 'match-card' + (isPerfect ? ' perfect' : '');
+  $('matchPercentage').className = 'match-percentage' + (isPerfect ? ' perfect' : '');
+  $('matchMessage').className = 'match-message' + (isPerfect ? ' perfect' : '');
+  $('matchBarFill').className = 'match-bar-fill' + (isPerfect ? ' perfect' : isHigh ? ' high' : '');
+  
+  // إعادة تعيين البار
+  $('matchBarFill').style.width = '0%';
+  $('matchPercentage').textContent = '0%';
+  
+  card.style.display = 'block';
+  
+  // أنيميشن بعد فترة قصيرة
+  setTimeout(function() {
+    $('matchBarFill').style.width = percentage + '%';
+    
+    // عداد النسبة المئوية بأنيميشن
+    var current = 0;
+    var step = Math.max(1, Math.floor(percentage / 30));
+    var counter = setInterval(function() {
+      current += step;
+      if (current >= percentage) {
+        current = percentage;
+        clearInterval(counter);
+      }
+      $('matchPercentage').textContent = current + '%';
+    }, 40);
+  }, 200);
+}
+
+function startCamera(product) {
+  state.selectedProduct = product;
+  state.active = true;
+  smoothed = null;
+  $('currentProductThumb').innerHTML = renderProductPreview(product);
+  $('currentProductName').textContent = product.name;
+  
+  // عرض بطاقة التطابق إذا فيه تحليل وجه
+  showMatchCard(product);
+  
+  showStudio();
+  loadingOverlay.classList.add('show');
+  loadingMessage.textContent = 'تجهيز النظارة...';
+  loadGlassesImage(product).then(function() {
+    loadingMessage.textContent = 'تشغيل الكاميرا...';
+    return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+  }).then(function(stream) {
+    state.videoStream = stream;
+    userVideo.srcObject = stream;
+    return new Promise(function(r) { userVideo.onloadedmetadata = function() { userVideo.play(); r(); }; });
+  }).then(function() {
+    loadingMessage.textContent = 'تجهيز التتبع...';
+    return initFaceMesh();
+  }).then(function(fm) {
+    // مهم: نرجع onResults للنظارة (لأنه ممكن كان شغّال للتحليل)
+    fm.onResults(onFaceMeshResults);
+    loadingOverlay.classList.remove('show');
+    fitCanvas();
+    function detect() {
+      if (!state.active) return;
+      if (!state.isProcessing && userVideo.readyState >= 2) {
+        state.isProcessing = true;
+        fm.send({ image: userVideo }).then(function() { state.isProcessing = false; }).catch(function() { state.isProcessing = false; });
+      }
+      requestAnimationFrame(detect);
+    }
+    detect();
+  }).catch(function(err) {
+    loadingOverlay.classList.remove('show');
+    var msg = err.name === 'NotAllowedError' ? 'تم رفض إذن الكاميرا' : err.name === 'NotFoundError' ? 'ما لقيت كاميرا' : 'حصل خطأ';
+    showToast(msg);
+    setTimeout(showSelection, 2000);
+  });
+}
+
+function showSelection() {
+  state.active = false;
+  state.isAnalyzing = false;
+  state.autoSamples = null;  // مسح العينات التلقائية
+  if (state.videoStream) {
+    var tracks = state.videoStream.getTracks();
+    for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+    state.videoStream = null;
+  }
+  
+  // إخفاء بطاقة التطابق
+  $('matchCard').style.display = 'none';
+  
+  welcomeScreen.style.display = 'none';
+  studioScreen.classList.remove('active');
+  $('analysisScreen').classList.remove('active');
+  selectionScreen.classList.add('active');
+  
+  // عرض سطر التحليل إذا فيه نتيجة
+  if (state.faceShape && FACE_SHAPES[state.faceShape]) {
+    var info = FACE_SHAPES[state.faceShape];
+    $('faceMatchBanner').style.display = 'flex';
+    $('faceMatchEmoji').textContent = info.emoji;
+    $('faceMatchTitle').textContent = 'وجهك ' + info.name;
+    $('faceMatchDesc').textContent = info.desc;
+  } else {
+    $('faceMatchBanner').style.display = 'none';
+  }
+  
+  renderProductsGrid();
+}
+
+// ============================================
+// شاشة تحليل الوجه - 4 خطوات احترافية
+// ============================================
+var analysisSteps = [
+  { label: 'خطوة 1 من 4', text: 'ابتسم وثبّت وجهك للأمام', duration: 2200 },
+  { label: 'خطوة 2 من 4', text: 'نقيس عرض الجبهة والوجنتين...', duration: 2000 },
+  { label: 'خطوة 3 من 4', text: 'نحلل تناسق الملامح والفك...', duration: 2000 },
+  { label: 'خطوة 4 من 4', text: 'نطابق نتيجتك مع 6 أشكال للوجه...', duration: 1800 }
+];
+
+function setStepDot(index, status) {
+  var dot = $('stepDot' + (index + 1));
+  if (!dot) return;
+  dot.className = 'step-dot' + (status === 'active' ? ' active' : status === 'done' ? ' done' : '');
+}
+
+function showAnalysisStep(stepIndex) {
+  if (stepIndex >= analysisSteps.length) return;
+  
+  var step = analysisSteps[stepIndex];
+  $('analysisStepLabel').textContent = step.label;
+  $('analysisStepText').textContent = step.text;
+  
+  // تحديث النقاط الـ 4
+  for (var i = 0; i < analysisSteps.length; i++) {
+    if (i < stepIndex) setStepDot(i, 'done');
+    else if (i === stepIndex) setStepDot(i, 'active');
+    else setStepDot(i, '');
+  }
+}
+
+// تحريك النقاط الذهبية على نقاط الوجه الفعلية
+function updateFaceDots(landmarks, videoEl) {
+  if (!landmarks) return;
+  
+  var rect = videoEl.getBoundingClientRect();
+  var parent = videoEl.parentElement;
+  var parentRect = parent.getBoundingClientRect();
+  
+  // نقاط مهمة على الوجه
+  var keyPoints = [
+    { lm: 10, dot: 'dot1' },    // الجبهة العليا
+    { lm: 152, dot: 'dot2' },   // الذقن
+    { lm: 234, dot: 'dot3' },   // الصدغ الأيسر
+    { lm: 454, dot: 'dot4' },   // الصدغ الأيمن
+    { lm: 33, dot: 'dot5' },    // العين اليسرى
+    { lm: 263, dot: 'dot6' },   // العين اليمنى
+    { lm: 103, dot: 'dot7' },   // الجبهة اليسرى
+    { lm: 332, dot: 'dot8' },   // الجبهة اليمنى
+    { lm: 172, dot: 'dot9' },   // الفك الأيسر
+    { lm: 397, dot: 'dot10' }   // الفك الأيمن
+  ];
+  
+  // الفيديو مقلوب (scaleX(-1))، نحتاج نعكس X
+  for (var i = 0; i < keyPoints.length; i++) {
+    var pt = keyPoints[i];
+    var lm = landmarks[pt.lm];
+    if (!lm) continue;
+    
+    var dotEl = $(pt.dot);
+    if (!dotEl) continue;
+    
+    // x معكوس بسبب scaleX(-1)
+    var x = (1 - lm.x) * parentRect.width;
+    var y = lm.y * parentRect.height;
+    
+    dotEl.style.left = (x - 3) + 'px';
+    dotEl.style.top = (y - 3) + 'px';
+    dotEl.classList.add('show');
+  }
+}
+
+function hideFaceDots() {
+  for (var i = 1; i <= 10; i++) {
+    var dot = $('dot' + i);
+    if (dot) dot.classList.remove('show');
+  }
+}
+
+function startFaceAnalysis() {
+  welcomeScreen.style.display = 'none';
+  selectionScreen.classList.remove('active');
+  studioScreen.classList.remove('active');
+  $('analysisScreen').classList.add('active');
+  $('analysisResultOverlay').classList.remove('show');
+  
+  state.isAnalyzing = true;
+  state.analysisSamples = [];
+  hideFaceDots();
+  
+  // ابدأ بالخطوة الأولى
+  showAnalysisStep(0);
+  
+  var analysisVideo = $('analysisVideo');
+  var currentStep = 0;
+  var stepStartTime = Date.now();
+  var detectionStarted = false;
+  
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, 
+    audio: false
+  }).then(function(stream) {
+    state.videoStream = stream;
+    analysisVideo.srcObject = stream;
+    return new Promise(function(r) { 
+      analysisVideo.onloadedmetadata = function() { analysisVideo.play(); r(); }; 
+    });
+  }).then(function() {
+    return initFaceMesh();
+  }).then(function(fm) {
+    fm.onResults(function(results) {
+      if (!state.isAnalyzing) return;
+      
+      // الحالة الأولى: ما فيه وجه أصلاً
+      if (!results.multiFaceLandmarks || !results.multiFaceLandmarks.length) {
+        hideFaceDots();
+        updateGuidance({ 
+          status: 'no_face', 
+          message: 'ما نشوف وجهك', 
+          sub: 'ضع وجهك أمام الكاميرا' 
+        });
+        detectionStarted = false;
+        stepStartTime = Date.now();
+        return;
+      }
+      
+      var lm = results.multiFaceLandmarks[0];
+      
+      // الحالة الثانية: نفحص جودة الوجه
+      var quality = checkFaceQuality(lm);
+      updateGuidance(quality);
+      updateFaceDots(lm, analysisVideo);
+      
+      // إذا الوجه مش مظبوط، ما نتقدم في التحليل
+      if (quality.status !== 'perfect') {
+        detectionStarted = false;
+        stepStartTime = Date.now();
+        // نحافظ على الخطوة الأولى ونعطي توجيهات
+        if (currentStep !== 0) {
+          currentStep = 0;
+          showAnalysisStep(0);
+          state.analysisSamples = []; // نعيد ضبط العينات
+        }
+        return;
+      }
+      
+      // الحالة الثالثة: الوجه مظبوط - نحلل
+      detectionStarted = true;
+      
+      // نجمع عينات بعد الخطوة الأولى
+      if (currentStep >= 1) {
+        var shape = analyzeFaceShape(lm);
+        if (shape !== null) {
+          state.analysisSamples.push(shape);
+        }
+      }
+      
+      // تقدم الخطوات حسب الوقت
+      var elapsed = Date.now() - stepStartTime;
+      var currentStepDuration = analysisSteps[currentStep] ? analysisSteps[currentStep].duration : 2000;
+      
+      if (elapsed >= currentStepDuration) {
+        currentStep++;
+        if (currentStep < analysisSteps.length) {
+          showAnalysisStep(currentStep);
+          stepStartTime = Date.now();
+        } else {
+          // انتهى التحليل
+          hideGuidance();
+          finishAnalysis();
+        }
+      }
+    });
+    
+    function analyzeLoop() {
+      if (!state.isAnalyzing) return;
+      if (!state.isProcessing && analysisVideo.readyState >= 2) {
+        state.isProcessing = true;
+        fm.send({ image: analysisVideo }).then(function() { 
+          state.isProcessing = false; 
+        }).catch(function() { 
+          state.isProcessing = false; 
+        });
+      }
+      requestAnimationFrame(analyzeLoop);
+    }
+    analyzeLoop();
+  }).catch(function(err) {
+    var msg = err.name === 'NotAllowedError' ? 'تم رفض إذن الكاميرا' : 
+              err.name === 'NotFoundError' ? 'ما لقيت كاميرا' : 'حصل خطأ';
+    $('analysisStepText').textContent = msg;
+    state.isAnalyzing = false;
+  });
+}
+
+function finishAnalysis() {
+  state.isAnalyzing = false;
+  
+  // نحدد شكل الوجه من العينات
+  var finalShape = 'oval';
+  if (state.analysisSamples.length > 5) {
+    var counts = {};
+    for (var i = 0; i < state.analysisSamples.length; i++) {
+      var s = state.analysisSamples[i];
+      counts[s] = (counts[s] || 0) + 1;
+    }
+    var maxCount = 0;
+    for (var key in counts) {
+      if (counts[key] > maxCount) {
+        maxCount = counts[key];
+        finalShape = key;
+      }
+    }
+    
+    // نشترط 55% توافق بين العينات
+    var confidence = maxCount / state.analysisSamples.length;
+    if (confidence < 0.55) finalShape = 'oval';
+  }
+  
+  state.faceShape = finalShape;
+  
+  // نضع كل النقاط كـ done
+  for (var i = 0; i < analysisSteps.length; i++) setStepDot(i, 'done');
+  
+  // نعرض النتيجة بعد لحظة قصيرة
+  setTimeout(function() {
+    var info = FACE_SHAPES[finalShape];
+    $('resultEmoji').textContent = info.emoji;
+    $('resultTitle').textContent = 'وجهك ' + info.name;
+    $('resultDesc').textContent = info.desc;
+    $('analysisResultOverlay').classList.add('show');
+  }, 600);
+}
+
+function renderProductsGrid() {
+  var grid = $('productsGrid');
+  
+  // نسوي نسخة من المنتجات مع نسبة التطابق
+  var productsWithScore = PRODUCTS.map(function(p) {
+    return {
+      product: p,
+      score: getMatchScore(p, state.faceShape)
+    };
+  });
+  
+  // نرتب حسب الأنسب (لو فيه تحليل وجه)
+  if (state.faceShape) {
+    productsWithScore.sort(function(a, b) {
+      return b.score - a.score;
+    });
+  }
+  
+  var html = '';
+  for (var i = 0; i < productsWithScore.length; i++) {
+    var p = productsWithScore[i].product;
+    var score = productsWithScore[i].score;
+    var label = getMatchLabel(score);
+    
+    html += '<button class="product-card" data-id="' + p.id + '">';
+    html += '<div class="product-image-box">' + renderProductPreview(p) + '</div>';
+    html += '<div class="product-card-name">' + p.name + '</div>';
+    
+    // إذا فيه تحليل وجه، نعرض النجوم والشارة
+    if (state.faceShape) {
+      html += '<div class="match-stars">' + getStars(score) + '</div>';
+      if (label.cls) {
+        html += '<div class="match-badge ' + label.cls + '">' + label.text + '</div>';
+      }
+    }
+    
+    html += '</button>';
+  }
+  grid.innerHTML = html;
+  
+  var cards = grid.querySelectorAll('.product-card');
+  for (var j = 0; j < cards.length; j++) {
+    cards[j].addEventListener('click', function() {
+      var id = this.getAttribute('data-id');
+      var product = null;
+      for (var k = 0; k < PRODUCTS.length; k++) {
+        if (PRODUCTS[k].id === id) { product = PRODUCTS[k]; break; }
+      }
+      if (product) startCamera(product);
+    });
+  }
+}
+
+function showStudio() {
+  welcomeScreen.style.display = 'none';
+  selectionScreen.classList.remove('active');
+  studioScreen.classList.add('active');
+  setTimeout(fitCanvas, 100);
+}
+
+function showWelcome() {
+  state.active = false;
+  if (state.videoStream) {
+    var tracks = state.videoStream.getTracks();
+    for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+    state.videoStream = null;
+  }
+  studioScreen.classList.remove('active');
+  selectionScreen.classList.remove('active');
+  welcomeScreen.style.display = 'block';
+  lastDetection = null;
+  smoothed = null;
+}
+
+function showStatus(text, type) {
+  if (!text) { previewStatus.classList.remove('show'); return; }
+  statusText.textContent = text;
+  previewStatus.className = 'preview-status show ' + (type || '');
+}
+
+function showToast(text) {
+  toast.textContent = text;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 3000);
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  welcomeScreen = $('welcomeScreen');
+  selectionScreen = $('selectionScreen');
+  studioScreen = $('studioScreen');
+  userVideo = $('userVideo');
+  glassesCanvas = $('glassesCanvas');
+  previewArea = $('previewArea');
+  previewStatus = $('previewStatus');
+  statusText = $('statusText');
+  loadingOverlay = $('loadingOverlay');
+  loadingMessage = $('loadingMessage');
+  toast = $('toast');
+  ctx = glassesCanvas.getContext('2d');
+  
+  // زر "اختر نظارة وابدأ" - يفتح المعرض مباشرة (بدون تحليل)
+  $('startBtn').addEventListener('click', showSelection);
+  
+  // زر "حلّل وجهك" - يبدأ التحليل
+  $('analyzeFaceBtn').addEventListener('click', startFaceAnalysis);
+  
+  // زر "شوف النظارات المناسبة" بعد التحليل
+  $('resultContinueBtn').addEventListener('click', showSelection);
+  
+  $('analysisBackBtn').addEventListener('click', function() {
+    state.isAnalyzing = false;
+    if (state.videoStream) {
+      var tracks = state.videoStream.getTracks();
+      for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+      state.videoStream = null;
+    }
+    showWelcome();
+  });
+  $('selectionBackBtn').addEventListener('click', showWelcome);
+  $('backBtn').addEventListener('click', showSelection);
+  $('changeProductBtn').addEventListener('click', showSelection);
+  
+  $('downloadBtn').addEventListener('click', function() {
+    if (!lastDetection) { showToast('انتظر لحظة...'); return; }
+    var ex = document.createElement('canvas');
+    var rect = previewArea.getBoundingClientRect();
+    ex.width = rect.width * 2;
+    ex.height = rect.height * 2;
+    var ectx = ex.getContext('2d');
+    ectx.scale(2, 2);
+    ectx.save();
+    ectx.scale(-1, 1);
+    ectx.drawImage(userVideo, -rect.width, 0, rect.width, rect.height);
+    ectx.restore();
+    ectx.drawImage(glassesCanvas, 0, 0, rect.width, rect.height);
+    var link = document.createElement('a');
+    link.download = 'tryon-' + Date.now() + '.png';
+    try {
+      link.href = ex.toDataURL('image/png');
+      link.click();
+      showToast('تم الحفظ ✓');
+    } catch (e) {
+      showToast('احفظ Screenshot من جوالك');
+    }
+  });
+  
+  $('shareBtn').addEventListener('click', function() {
+    if (navigator.share) {
+      navigator.share({ title: 'جربت النظارة', text: 'شوف كيف تبين 👓', url: window.location.href }).catch(function() {});
+    } else {
+      if (navigator.clipboard) navigator.clipboard.writeText(window.location.href);
+      showToast('تم نسخ الرابط ✓');
+    }
+  });
+  
+  $('buyBtn').addEventListener('click', function() { window.open('/', '_top'); });
+  
+  window.addEventListener('resize', function() {
+    if (studioScreen.classList.contains('active')) { fitCanvas(); }
+  });
+});
+</script>
+</body>
+</html>
