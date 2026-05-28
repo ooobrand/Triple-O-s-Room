@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triple O - اختبار الخوارزمية</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Tajawal', sans-serif; 
+    background: #0f0f0f; 
+    color: #e0e0e0; 
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+  }
+  .subtitle {
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  
+  .upload-area {
+    border: 2px dashed #444;
+    border-radius: 16px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #1a1a1a;
+    margin-bottom: 20px;
+  }
+  .upload-area:hover {
+    border-color: #d4a85a;
+    background: #1f1f1f;
+  }
+  .upload-area.dragging {
+    border-color: #d4a85a;
+    background: #252525;
+    transform: scale(1.01);
+  }
+  .upload-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .upload-text {
+    font-size: 16px;
+    color: #ccc;
+    margin-bottom: 6px;
+  }
+  .upload-hint {
+    font-size: 12px;
+    color: #666;
+  }
+  
+  #fileInput { display: none; }
+  
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  @media (max-width: 800px) {
+    .result-grid { grid-template-columns: 1fr; }
+  }
+  
+  .panel {
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #2a2a2a;
+  }
+  .panel-title {
+    font-size: 14px;
+    color: #d4a85a;
+    margin-bottom: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .image-preview {
+    position: relative;
+    background: #0a0a0a;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .image-preview img {
+    width: 100%;
+    display: block;
+  }
+  .image-preview canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  
+  .result-title {
+    font-size: 36px;
+    font-weight: 700;
+    margin: 16px 0;
+    color: #fff;
+    text-align: center;
+  }
+  .result-title .emoji {
+    font-size: 60px;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .result-confidence {
+    text-align: center;
+    color: #d4a85a;
+    font-size: 13px;
+    margin-bottom: 20px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 1px;
+  }
+  
+  .metrics-list {
+    list-style: none;
+  }
+  .metric-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #252525;
+    font-size: 13px;
+  }
+  .metric-item:last-child { border-bottom: none; }
+  .metric-label {
+    color: #888;
+  }
+  .metric-value {
+    color: #fff;
+    font-weight: 600;
+    font-family: 'Inter', monospace;
+  }
+  .metric-value.highlight {
+    color: #d4a85a;
+  }
+  
+  .scores-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #2a2a2a;
+  }
+  .score-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .score-label {
+    width: 70px;
+    color: #aaa;
+    font-size: 11px;
+  }
+  .score-progress {
+    flex: 1;
+    height: 8px;
+    background: #252525;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #666, #999);
+    border-radius: 4px;
+    transition: width 0.5s;
+  }
+  .score-fill.winner {
+    background: linear-gradient(90deg, #d4a85a, #b8893f);
+  }
+  .score-value {
+    width: 40px;
+    text-align: left;
+    color: #fff;
+    font-family: 'Inter', monospace;
+    font-size: 11px;
+  }
+  
+  .recommendations {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #2a2a2a;
+  }
+  .rec-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #0f0f0f;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .rec-name {
+    color: #fff;
+    font-weight: 600;
+  }
+  .rec-stars {
+    color: #d4a85a;
+    letter-spacing: 1px;
+  }
+  
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+  }
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #2a2a2a;
+    border-top-color: #d4a85a;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  .error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+  }
+  
+  .tip-box {
+    background: rgba(212, 168, 90, 0.08);
+    border: 1px solid rgba(212, 168, 90, 0.2);
+    color: #d4a85a;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
+  
+  .clear-btn {
+    background: #2a2a2a;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    margin-top: 12px;
+  }
+  .clear-btn:hover { background: #333; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🧪 Triple O — اختبار خوارزمية تحليل الوجه</h1>
+  <div class="subtitle">ارفع صورة وجه لاختبار دقة الخوارزمية وشوف القياسات الفعلية</div>
+  
+  <div class="tip-box">
+    💡 <strong>نصائح للاختبار:</strong> استخدم صور وجوه واضحة (front-facing)، إضاءة جيدة، بدون نظارات أو أيدي تغطي الوجه. جرب صور من Google: "oval face", "square face", "round face", "heart face", "diamond face", "oblong face".
+  </div>
+  
+  <div class="upload-area" id="uploadArea">
+    <div class="upload-icon">📸</div>
+    <div class="upload-text">اضغط أو اسحب صورة هنا</div>
+    <div class="upload-hint">يدعم: JPG, PNG, WEBP</div>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+  
+  <div id="resultArea"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+
+<script>
+// ============================================
+// نسخة من خوارزمية التحليل (نفس الموجودة في الموقع)
+// ============================================
+
+var FACE_SHAPES = {
+  'oval': { name: 'بيضاوي', emoji: '✨' },
+  'round': { name: 'دائري', emoji: '⭕' },
+  'square': { name: 'مربع', emoji: '⬜' },
+  'heart': { name: 'قلب', emoji: '💛' },
+  'diamond': { name: 'معيّن', emoji: '💎' },
+  'oblong': { name: 'مستطيل', emoji: '📐' }
+};
+
+var PRODUCTS = [
+  { id: 'clear-grant', name: 'CLEAR GRANT', properties: { frameWidth: 138, lensWidth: 50, lensHeight: 42, bridgeWidth: 18, shape: 'round', cornerRadius: 9, frameStyle: 'full', frameWeight: 'light', visualWeight: 4 }},
+  { id: 'urban', name: 'URBAN', properties: { frameWidth: 145, lensWidth: 54, lensHeight: 40, bridgeWidth: 19, shape: 'rectangular', cornerRadius: 3, frameStyle: 'full', frameWeight: 'heavy', visualWeight: 9 }},
+  { id: 'gold-os', name: "GOLD O'S", properties: { frameWidth: 140, lensWidth: 52, lensHeight: 44, bridgeWidth: 18, shape: 'hexagonal', cornerRadius: 5, frameStyle: 'rimless', frameWeight: 'light', visualWeight: 2 }},
+  { id: 'otto-lens', name: 'OTTO LENS', properties: { frameWidth: 142, lensWidth: 53, lensHeight: 43, bridgeWidth: 18, shape: 'hexagonal', cornerRadius: 5, frameStyle: 'rimless', frameWeight: 'light', visualWeight: 3 }}
+];
+
+// متغيرات global لحفظ آخر التحليل
+var lastAnalysisData = null;
+
+function analyzeFaceShape(landmarks) {
+  if (!landmarks || landmarks.length < 468) return null;
+  
+  var foreheadTopL = landmarks[67], foreheadTopR = landmarks[297], foreheadTop = landmarks[10];
+  var cheekboneL = landmarks[234], cheekboneR = landmarks[454];
+  var jawAngleL = landmarks[172], jawAngleR = landmarks[397];
+  var chin = landmarks[152];
+  var chinSideL = landmarks[176], chinSideR = landmarks[400];
+  var malarL = landmarks[123], malarR = landmarks[352];
+  var noseTip = landmarks[1], noseBridge = landmarks[168];
+  var leftEye = landmarks[33], rightEye = landmarks[263];
+  var jawMidL = landmarks[215], jawMidR = landmarks[435];
+  var jawLowerL = landmarks[58], jawLowerR = landmarks[288];
+  var chinNarrowL = landmarks[32], chinNarrowR = landmarks[262];
+  
+  var required = [foreheadTopL, foreheadTopR, foreheadTop, cheekboneL, cheekboneR, jawAngleL, jawAngleR, chin, chinSideL, chinSideR, malarL, malarR, noseTip, noseBridge, leftEye, rightEye, jawMidL, jawMidR, jawLowerL, jawLowerR, chinNarrowL, chinNarrowR];
+  for (var i = 0; i < required.length; i++) {
+    if (!required[i] || typeof required[i].x !== 'number') return null;
+  }
+  
+  var CAMERA_DISTORTION_FACTOR = 1.16;
+  var eyeAngle = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
+  
+  function rotatePoint(p, angle) {
+    var cos = Math.cos(-angle), sin = Math.sin(-angle);
+    return { x: p.x * cos - p.y * sin, y: p.x * sin + p.y * cos, z: p.z || 0 };
+  }
+  
+  var r = {
+    foreheadTopL: rotatePoint(foreheadTopL, eyeAngle),
+    foreheadTopR: rotatePoint(foreheadTopR, eyeAngle),
+    foreheadTop: rotatePoint(foreheadTop, eyeAngle),
+    cheekboneL: rotatePoint(cheekboneL, eyeAngle),
+    cheekboneR: rotatePoint(cheekboneR, eyeAngle),
+    jawAngleL: rotatePoint(jawAngleL, eyeAngle),
+    jawAngleR: rotatePoint(jawAngleR, eyeAngle),
+    chin: rotatePoint(chin, eyeAngle),
+    chinSideL: rotatePoint(chinSideL, eyeAngle),
+    chinSideR: rotatePoint(chinSideR, eyeAngle),
+    malarL: rotatePoint(malarL, eyeAngle),
+    malarR: rotatePoint(malarR, eyeAngle),
+    jawMidL: rotatePoint(jawMidL, eyeAngle),
+    jawMidR: rotatePoint(jawMidR, eyeAngle),
+    jawLowerL: rotatePoint(jawLowerL, eyeAngle),
+    jawLowerR: rotatePoint(jawLowerR, eyeAngle),
+    chinNarrowL: rotatePoint(chinNarrowL, eyeAngle),
+    chinNarrowR: rotatePoint(chinNarrowR, eyeAngle)
+  };
+  
+  var foreheadWidth = Math.abs(r.foreheadTopR.x - r.foreheadTopL.x);
+  var cheekboneWidth = Math.abs(r.cheekboneR.x - r.cheekboneL.x);
+  var jawWidth = Math.abs(r.jawAngleR.x - r.jawAngleL.x);
+  var rawFaceLength = Math.abs(r.chin.y - r.foreheadTop.y);
+  var faceLength = rawFaceLength * CAMERA_DISTORTION_FACTOR;
+  
+  if (faceLength < 0.15 || cheekboneWidth < 0.1) return null;
+  
+  // زاوية الذقن
+  var v1x = r.chinSideL.x - r.chin.x, v1y = r.chinSideL.y - r.chin.y;
+  var v2x = r.chinSideR.x - r.chin.x, v2y = r.chinSideR.y - r.chin.y;
+  var mag1 = Math.sqrt(v1x*v1x + v1y*v1y), mag2 = Math.sqrt(v2x*v2x + v2y*v2y);
+  if (mag1 < 0.001 || mag2 < 0.001) return null;
+  var dotProduct = v1x * v2x + v1y * v2y;
+  var chinAngle = Math.acos(Math.max(-1, Math.min(1, dotProduct / (mag1 * mag2))));
+  var chinSharpness = 1 - (chinAngle / Math.PI);
+  
+  // Z-axis prominence
+  var malarZ = ((malarL.z || 0) + (malarR.z || 0)) / 2;
+  var cheekboneZ = ((cheekboneL.z || 0) + (cheekboneR.z || 0)) / 2;
+  var cheekboneProminence3D = cheekboneZ - malarZ;
+  var malarWidth = Math.abs(r.malarR.x - r.malarL.x);
+  var cheekboneProminence2D = cheekboneWidth > 0 ? malarWidth / cheekboneWidth : 1;
+  
+  // النسب
+  var widestPart = Math.max(foreheadWidth, cheekboneWidth, jawWidth);
+  var lengthToWidth = faceLength / widestPart;
+  var foreheadToCheek = foreheadWidth / cheekboneWidth;
+  var jawToCheek = jawWidth / cheekboneWidth;
+  var foreheadToJaw = jawWidth > 0 ? foreheadWidth / jawWidth : 1;
+  
+  // قياسات إضافية
+  var foreheadToLength = foreheadWidth / faceLength;
+  var chinNarrowWidth = Math.abs(r.chinNarrowR.x - r.chinNarrowL.x);
+  var chinToJaw = jawWidth > 0 ? chinNarrowWidth / jawWidth : 1;
+  var jawMidWidth = Math.abs(r.jawMidR.x - r.jawMidL.x);
+  var jawCurvature = jawWidth > 0 ? jawMidWidth / jawWidth : 1;
+  var malarX_avg = (Math.abs(r.malarL.x) + Math.abs(r.malarR.x)) / 2;
+  var cheekboneX_avg = (Math.abs(r.cheekboneL.x) + Math.abs(r.cheekboneR.x)) / 2;
+  var malarProtrusion = cheekboneX_avg > 0 ? malarX_avg / cheekboneX_avg : 1;
+  var topBottomSymmetry = Math.abs(foreheadToCheek - jawToCheek);
+  
+  // النقاط
+  var scores = { oval: 0, round: 0, square: 0, heart: 0, diamond: 0, oblong: 0 };
+  
+  // Oblong
+  if (lengthToWidth > 1.55) scores.oblong += 65;
+  else if (lengthToWidth > 1.45) scores.oblong += 40;
+  else if (lengthToWidth > 1.38) scores.oblong += 18;
+  if (topBottomSymmetry < 0.06 && lengthToWidth > 1.35) scores.oblong += 18;
+  else if (topBottomSymmetry < 0.10 && lengthToWidth > 1.30) scores.oblong += 8;
+  if (foreheadToLength < 0.62 && lengthToWidth > 1.4) scores.oblong += 15;
+  
+  // Oval
+  if (lengthToWidth >= 1.28 && lengthToWidth <= 1.52) scores.oval += 22;
+  else if (lengthToWidth >= 1.20 && lengthToWidth < 1.28) scores.oval += 8;
+  if (foreheadToJaw >= 1.0 && foreheadToJaw <= 1.22) scores.oval += 18;
+  if (jawToCheek >= 0.75 && jawToCheek <= 0.92) scores.oval += 15;
+  if (chinSharpness >= 0.30 && chinSharpness <= 0.50) scores.oval += 12;
+  if (foreheadToCheek >= 0.78 && foreheadToCheek <= 0.95) scores.oval += 10;
+  if (jawCurvature >= 0.88 && jawCurvature <= 0.95) scores.oval += 10;
+  if (chinToJaw >= 0.55 && chinToJaw <= 0.75) scores.oval += 8;
+  
+  // Round
+  if (lengthToWidth < 1.13) scores.round += 32;
+  else if (lengthToWidth < 1.20) scores.round += 20;
+  else if (lengthToWidth < 1.26) scores.round += 8;
+  if (chinSharpness < 0.26) scores.round += 25;
+  else if (chinSharpness < 0.33) scores.round += 12;
+  if (jawToCheek >= 0.82 && jawToCheek <= 0.95) scores.round += 12;
+  if (topBottomSymmetry < 0.08) scores.round += 10;
+  if (jawCurvature > 0.93) scores.round += 15;
+  if (lengthToWidth < 1.20) scores.round += 12;
+  
+  // Square
+  if (jawToCheek > 0.95) scores.square += 28;
+  else if (jawToCheek > 0.90) scores.square += 15;
+  if (chinSharpness > 0.52) scores.square += 20;
+  else if (chinSharpness > 0.42) scores.square += 10;
+  if (lengthToWidth < 1.28) scores.square += 15;
+  else if (lengthToWidth < 1.38) scores.square += 6;
+  if (Math.abs(foreheadToJaw - 1.0) < 0.10) scores.square += 12;
+  if (jawCurvature < 0.85) scores.square += 18;
+  else if (jawCurvature < 0.90) scores.square += 10;
+  if (chinToJaw > 0.70) scores.square += 8;
+  
+  // Heart
+  if (foreheadToJaw > 1.30) scores.heart += 32;
+  else if (foreheadToJaw > 1.20) scores.heart += 20;
+  else if (foreheadToJaw > 1.12) scores.heart += 8;
+  if (jawToCheek < 0.72) scores.heart += 20;
+  else if (jawToCheek < 0.80) scores.heart += 10;
+  if (chinSharpness > 0.45) scores.heart += 14;
+  if (foreheadToCheek > 0.88) scores.heart += 10;
+  if (chinToJaw < 0.55) scores.heart += 18;
+  else if (chinToJaw < 0.65) scores.heart += 10;
+  if (topBottomSymmetry > 0.20) scores.heart += 12;
+  
+  // Diamond
+  if (foreheadToCheek < 0.80 && jawToCheek < 0.78) scores.diamond += 32;
+  else if (foreheadToCheek < 0.85 && jawToCheek < 0.82) scores.diamond += 18;
+  if (cheekboneProminence3D < -0.005) scores.diamond += 15;
+  if (cheekboneProminence2D > 1.02) scores.diamond += 10;
+  if (lengthToWidth > 1.30 && lengthToWidth < 1.55) scores.diamond += 8;
+  if (chinSharpness > 0.40) scores.diamond += 10;
+  if (malarProtrusion > 1.03) scores.diamond += 18;
+  else if (malarProtrusion > 1.0) scores.diamond += 8;
+  
+  // Exclusion rules
+  if (lengthToWidth > 1.45) {
+    scores.round = Math.max(0, scores.round - 40);
+    scores.square = Math.max(0, scores.square - 30);
+  }
+  if (lengthToWidth > 1.55) {
+    scores.round = 0;
+    scores.square = Math.max(0, scores.square - 25);
+  }
+  if (foreheadToJaw > 1.25) {
+    scores.round = Math.max(0, scores.round - 25);
+    scores.square = Math.max(0, scores.square - 25);
+  }
+  if (jawToCheek > 0.92) {
+    scores.heart = Math.max(0, scores.heart - 35);
+    scores.diamond = Math.max(0, scores.diamond - 35);
+  }
+  if (lengthToWidth < 1.25) scores.oblong = 0;
+  if (Math.abs(foreheadToJaw - 1) < 0.08) scores.heart = Math.max(0, scores.heart - 25);
+  
+  // اختيار النتيجة
+  var bestShape = 'oval', bestScore = 0, secondBest = 0;
+  for (var shape in scores) {
+    if (scores[shape] > bestScore) {
+      secondBest = bestScore;
+      bestScore = scores[shape];
+      bestShape = shape;
+    } else if (scores[shape] > secondBest) {
+      secondBest = scores[shape];
+    }
+  }
+  
+  // نخزن البيانات للعرض
+  lastAnalysisData = {
+    shape: bestShape,
+    confidence: bestScore,
+    secondBest: secondBest,
+    metrics: {
+      lengthToWidth: lengthToWidth.toFixed(3),
+      foreheadToCheek: foreheadToCheek.toFixed(3),
+      jawToCheek: jawToCheek.toFixed(3),
+      foreheadToJaw: foreheadToJaw.toFixed(3),
+      chinSharpness: chinSharpness.toFixed(3),
+      cheekboneProminence: cheekboneProminence2D.toFixed(3),
+      jawCurvature: jawCurvature.toFixed(3),
+      chinToJaw: chinToJaw.toFixed(3),
+      malarProtrusion: malarProtrusion.toFixed(3),
+      topBottomSymmetry: topBottomSymmetry.toFixed(3),
+      foreheadToLength: foreheadToLength.toFixed(3)
+    },
+    scores: scores,
+    landmarks: landmarks,
+    rotated: r
+  };
+  
+  if (bestScore < 25) return null;
+  if (bestScore - secondBest < 8 && bestScore < 50) return null;
+  
+  return bestShape;
+}
+
+// خوارزمية التطابق العلمية المبسطة (للعرض)
+function calculateScientificMatch(faceMetrics, glasses) {
+  var p = glasses.properties;
+  if (!p || !faceMetrics) return 3;
+  
+  var totalScore = 0;
+  var face = faceMetrics.shape;
+  var glassShape = p.shape;
+  
+  var shapeContrast = {
+    'square': { 'round': 30, 'hexagonal': 25, 'cat-eye': 25, 'aviator': 22, 'rectangular': 10, 'square': 5 },
+    'round': { 'rectangular': 30, 'square': 28, 'hexagonal': 22, 'cat-eye': 20, 'aviator': 18, 'round': 8 },
+    'oval': { 'rectangular': 25, 'round': 25, 'hexagonal': 25, 'cat-eye': 25, 'aviator': 25, 'square': 22 },
+    'heart': { 'aviator': 30, 'round': 28, 'hexagonal': 26, 'rectangular': 22, 'cat-eye': 15, 'square': 18 },
+    'diamond': { 'cat-eye': 30, 'hexagonal': 28, 'aviator': 25, 'round': 24, 'rectangular': 18, 'square': 15 },
+    'oblong': { 'rectangular': 30, 'square': 28, 'aviator': 26, 'round': 22, 'hexagonal': 20, 'cat-eye': 18 }
+  };
+  
+  if (shapeContrast[face] && shapeContrast[face][glassShape] !== undefined) {
+    totalScore += shapeContrast[face][glassShape];
+  } else {
+    totalScore += 15;
+  }
+  
+  // مبسط - نضيف 50 نقطة افتراضية للمعايير الأخرى
+  totalScore += 50;
+  
+  if (totalScore >= 85) return 5;
+  if (totalScore >= 70) return 4;
+  if (totalScore >= 55) return 3;
+  if (totalScore >= 40) return 2;
+  return 1;
+}
+
+function getStars(n) {
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+}
+
+// ============================================
+// واجهة المستخدم
+// ============================================
+var uploadArea = document.getElementById('uploadArea');
+var fileInput = document.getElementById('fileInput');
+var resultArea = document.getElementById('resultArea');
+var faceMeshInstance = null;
+var imgElement = null;
+
+// تهيئة MediaPipe
+function initFaceMesh() {
+  return new Promise(function(resolve) {
+    if (faceMeshInstance) { resolve(faceMeshInstance); return; }
+    
+    var fm = new FaceMesh({
+      locateFile: function(file) {
+        return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/' + file;
+      }
+    });
+    fm.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+    
+    faceMeshInstance = fm;
+    resolve(fm);
+  });
+}
+
+// رفع الصورة
+uploadArea.addEventListener('click', function() { fileInput.click(); });
+uploadArea.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  uploadArea.classList.add('dragging');
+});
+uploadArea.addEventListener('dragleave', function() {
+  uploadArea.classList.remove('dragging');
+});
+uploadArea.addEventListener('drop', function(e) {
+  e.preventDefault();
+  uploadArea.classList.remove('dragging');
+  if (e.dataTransfer.files.length > 0) {
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+fileInput.addEventListener('change', function(e) {
+  if (e.target.files.length > 0) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.type.startsWith('image/')) {
+    showError('يرجى رفع صورة');
+    return;
+  }
+  
+  resultArea.innerHTML = '<div class="loading"><div class="spinner"></div>جاري تحميل الصورة...</div>';
+  
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      imgElement = img;
+      analyzeImage(img);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function analyzeImage(img) {
+  resultArea.innerHTML = '<div class="loading"><div class="spinner"></div>جاري تحليل الوجه...</div>';
+  
+  initFaceMesh().then(function(fm) {
+    fm.onResults(function(results) {
+      if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+        showError('❌ ما لقيت وجه واضح في الصورة. جرب صورة ثانية بإضاءة أفضل.');
+        return;
+      }
+      
+      var landmarks = results.multiFaceLandmarks[0];
+      var shape = analyzeFaceShape(landmarks);
+      
+      if (!shape) {
+        showError('⚠️ التحليل غير حاسم. جرب صورة وجه أوضح وأكثر مواجهة للكاميرا.');
+        return;
+      }
+      
+      displayResult(shape, img);
+    });
+    
+    fm.send({ image: img });
+  });
+}
+
+function displayResult(shape, img) {
+  var data = lastAnalysisData;
+  var info = FACE_SHAPES[shape];
+  
+  // ترتيب الأشكال حسب النقاط
+  var sortedScores = Object.keys(data.scores).map(function(k) {
+    return { name: k, score: data.scores[k] };
+  }).sort(function(a, b) { return b.score - a.score; });
+  
+  var maxScore = sortedScores[0].score;
+  
+  // حساب التوصيات
+  var productScores = PRODUCTS.map(function(p) {
+    return {
+      product: p,
+      score: calculateScientificMatch({ shape: shape }, p)
+    };
+  }).sort(function(a, b) { return b.score - a.score; });
+  
+  var html = '<div class="result-grid">';
+  
+  // اليسار: الصورة + النقاط
+  html += '<div class="panel">';
+  html += '<div class="panel-title">الصورة + النقاط المرجعية</div>';
+  html += '<div class="image-preview" id="imagePreview">';
+  html += '<img src="' + img.src + '" id="resultImg">';
+  html += '<canvas id="overlayCanvas"></canvas>';
+  html += '</div>';
+  html += '<button class="clear-btn" onclick="resetTest()">🔄 جرّب صورة ثانية</button>';
+  html += '</div>';
+  
+  // اليمين: النتيجة + القياسات
+  html += '<div class="panel">';
+  html += '<div class="panel-title">النتيجة</div>';
+  html += '<div class="result-title">';
+  html += '<span class="emoji">' + info.emoji + '</span>';
+  html += 'وجه ' + info.name;
+  html += '</div>';
+  html += '<div class="result-confidence">CONFIDENCE: ' + data.confidence + ' POINTS (FROM ' + (data.confidence - data.secondBest).toFixed(0) + ' MARGIN)</div>';
+  
+  // النقاط لكل شكل
+  html += '<div class="panel-title" style="margin-top:16px;">نقاط كل شكل</div>';
+  for (var i = 0; i < sortedScores.length; i++) {
+    var s = sortedScores[i];
+    var percent = (s.score / Math.max(maxScore, 50)) * 100;
+    var sInfo = FACE_SHAPES[s.name];
+    html += '<div class="score-bar">';
+    html += '<div class="score-label">' + sInfo.emoji + ' ' + sInfo.name + '</div>';
+    html += '<div class="score-progress"><div class="score-fill ' + (i === 0 ? 'winner' : '') + '" style="width:' + percent + '%"></div></div>';
+    html += '<div class="score-value">' + s.score + '</div>';
+    html += '</div>';
+  }
+  
+  // القياسات التفصيلية
+  html += '<div class="scores-section">';
+  html += '<div class="panel-title">القياسات التفصيلية</div>';
+  html += '<ul class="metrics-list">';
+  var metrics = data.metrics;
+  html += '<li class="metric-item"><span class="metric-label">نسبة الطول/العرض</span><span class="metric-value highlight">' + metrics.lengthToWidth + '</span></li>';
+  html += '<li class="metric-item"><span class="metric-label">الجبهة/الوجنتين</span><span class="metric-value">' + metrics.foreheadToCheek + '</span></li>';
+  html += '<li class="metric-item"><span class="metric-label">الفك/الوجنتين</span><span class="metric-value">' + metrics.jawToCheek + '</span></li>';
+  html += '<li class="metric-item"><span class="metric-label">الجبهة/الفك</span><span class="metric-value">' + metrics.foreheadToJaw + '</span></li>';
+  html += '<li class="metric-item"><span class="metric-label">حدة الذقن</span><span class="metric-value highlight">' + metrics.chinSharpness + '</span></li>';
+  html += '<li class="metric-item"><span class="metric-label">انحناء الفك</span><span class="metric-value">' + metrics.jawCurvature + '</span></li>';
+  html += '<li class="metric-item"><span class="metric-label">عرض الذقن/الفك</span><span class="metric-value">' + metrics.chinToJaw + '</span></li>';
+  html += '<li class="metric-item"><span class="metric-label">بروز الوجنة</span><span class="metric-value">' + metrics.malarProtrusion + '</span></li>';
+  html += '<li class="metric-item"><span class="metric-label">تماثل علوي/سفلي</span><span class="metric-value">' + metrics.topBottomSymmetry + '</span></li>';
+  html += '</ul>';
+  html += '</div>';
+  
+  // التوصيات
+  html += '<div class="recommendations">';
+  html += '<div class="panel-title">توصيات النظارات</div>';
+  for (var i = 0; i < productScores.length; i++) {
+    var ps = productScores[i];
+    html += '<div class="rec-item">';
+    html += '<span class="rec-name">' + ps.product.name + '</span>';
+    html += '<span class="rec-stars">' + getStars(ps.score) + '</span>';
+    html += '</div>';
+  }
+  html += '</div>';
+  
+  html += '</div>'; // panel
+  html += '</div>'; // grid
+  
+  resultArea.innerHTML = html;
+  
+  // رسم النقاط على الصورة
+  setTimeout(function() { drawLandmarks(img); }, 100);
+}
+
+function drawLandmarks(img) {
+  var canvas = document.getElementById('overlayCanvas');
+  if (!canvas) return;
+  
+  var displayedImg = document.getElementById('resultImg');
+  canvas.width = displayedImg.offsetWidth;
+  canvas.height = displayedImg.offsetHeight;
+  
+  var ctx = canvas.getContext('2d');
+  var landmarks = lastAnalysisData.landmarks;
+  
+  // النقاط المهمة فقط (لتكون واضحة)
+  var keyPoints = [10, 152, 234, 454, 67, 297, 172, 397, 1, 33, 263, 123, 352, 176, 400, 215, 435, 32, 262];
+  
+  ctx.strokeStyle = 'rgba(212, 168, 90, 0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.fillStyle = '#d4a85a';
+  
+  // ارسم خطوط القياس الأساسية
+  function drawLine(p1Idx, p2Idx, color) {
+    var p1 = landmarks[p1Idx], p2 = landmarks[p2Idx];
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
+    ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+    ctx.stroke();
+  }
+  
+  // طول الوجه (أحمر)
+  drawLine(10, 152, 'rgba(239, 68, 68, 0.7)');
+  // عرض الجبهة (أصفر)
+  drawLine(67, 297, 'rgba(234, 179, 8, 0.7)');
+  // عرض الوجنتين (أخضر)
+  drawLine(234, 454, 'rgba(34, 197, 94, 0.7)');
+  // عرض الفك (أزرق)
+  drawLine(172, 397, 'rgba(59, 130, 246, 0.7)');
+  
+  // النقاط
+  for (var i = 0; i < keyPoints.length; i++) {
+    var lm = landmarks[keyPoints[i]];
+    if (!lm) continue;
+    var x = lm.x * canvas.width;
+    var y = lm.y * canvas.height;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function showError(msg) {
+  resultArea.innerHTML = '<div class="error">' + msg + '</div><button class="clear-btn" onclick="resetTest()">🔄 جرّب صورة ثانية</button>';
+}
+
+function resetTest() {
+  resultArea.innerHTML = '';
+  fileInput.value = '';
+}
+</script>
+
+</body>
+</html>
