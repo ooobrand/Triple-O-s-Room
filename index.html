@@ -1471,6 +1471,12 @@
     background: linear-gradient(135deg, #fff 0%, #fff8e8 100%);
     box-shadow: 0 4px 16px rgba(212, 168, 90, 0.15);
   }
+  .match-card.match-card-cta {
+    border-style: dashed;
+    border-color: #d4d4d4;
+    background: #fafafa;
+    text-align: center;
+  }
   .match-card-header {
     display: flex; align-items: center;
     justify-content: space-between;
@@ -3214,43 +3220,10 @@ function onFaceMeshResults(results) {
   var lm = results.multiFaceLandmarks[0];
   
   // ==========================================
-  // حساب تطابق تلقائي إذا ما عندنا تحليل مسبق
+  // ملاحظة: شلنا التحليل التلقائي هنا
+  // التحليل يصير فقط عبر زر "وش يناسب وجهك؟" (face-api)
+  // عشان ما يصير تضارب بين خوارزميتين
   // ==========================================
-  if (!state.faceShape && state.selectedProduct) {
-    if (!state.autoSamples) state.autoSamples = [];
-    var shape = analyzeFaceShape(lm);
-    
-    // نقبل العينة فقط إذا كانت صحيحة (مش null)
-    if (shape !== null) {
-      state.autoSamples.push(shape);
-    }
-    
-    // نحتاج 20 عينة صالحة (مش 15) عشان دقة أعلى
-    if (state.autoSamples.length >= 20) {
-      var counts = {};
-      for (var i = 0; i < state.autoSamples.length; i++) {
-        var s = state.autoSamples[i];
-        counts[s] = (counts[s] || 0) + 1;
-      }
-      var maxCount = 0;
-      var finalShape = 'oval';
-      for (var key in counts) {
-        if (counts[key] > maxCount) {
-          maxCount = counts[key];
-          finalShape = key;
-        }
-      }
-      
-      // نشترط 60% توافق بين العينات (وإلا نرجع بيضاوي)
-      var confidence = maxCount / state.autoSamples.length;
-      if (confidence < 0.6) finalShape = 'oval';
-      
-      state.faceShape = finalShape;
-      state.autoSamples = null;
-      
-      showMatchCard(state.selectedProduct);
-    }
-  }
   
   var cw = logicalW, ch = logicalH;
   var sw = userVideo.videoWidth, sh = userVideo.videoHeight;
@@ -3283,18 +3256,18 @@ function onFaceMeshResults(results) {
 function showMatchCard(product) {
   var card = $('matchCard');
   
-  // لو ما فيه تحليل وجه - نعرض حالة "تحليل لحظي"
+  // لو ما فيه تحليل وجه - ندعوه يحلل وجهه
   if (!state.faceShape) {
     card.style.display = 'block';
-    card.className = 'match-card';
-    $('matchStarsBig').textContent = '✨';
-    $('matchRatingText').textContent = 'جاري التحليل...';
-    $('matchPercentage').textContent = '...';
+    card.className = 'match-card match-card-cta';
+    $('matchStarsBig').textContent = '';
+    $('matchRatingText').textContent = 'وش يناسب وجهك؟';
+    $('matchPercentage').textContent = '';
     $('matchPercentage').className = 'match-percentage';
-    $('matchMessage').textContent = 'نحلل ملامحك ونحسب نسبة التطابق';
+    $('matchMessage').textContent = 'حلّل شكل وجهك عشان نعطيك نسبة تطابق هذي النظارة معك';
     $('matchMessage').className = 'match-message';
     $('matchBarFill').className = 'match-bar-fill';
-    $('matchBarFill').style.width = '15%';
+    $('matchBarFill').style.width = '0%';
     return;
   }
   
