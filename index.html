@@ -1149,38 +1149,15 @@
   }
   
   /* النقاط الذهبية المتحركة على الوجه */
+  /* 🎯 تصميم مينيمال - نخفي النقاط والخطوط نهائياً */
   .face-dot {
-    position: absolute;
-    width: 6px; height: 6px;
-    background: #d4a85a;
-    border-radius: 50%;
-    box-shadow: 0 0 10px rgba(212, 168, 90, 0.9);
-    pointer-events: none;
-    z-index: 8;
-    opacity: 0;
-    transition: opacity 0.4s;
-  }
-  .face-dot.show { opacity: 1; animation: dot-pulse 1.5s ease-in-out infinite; }
-  @keyframes dot-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.3); }
+    display: none;
   }
   
-  /* خطوط القياس بين النقاط */
+  /* خطوط القياس - مخفية نهائياً (مينيمال) */
   .measure-line {
-    position: absolute;
-    height: 1px;
-    background: linear-gradient(90deg, 
-      transparent, 
-      rgba(212, 168, 90, 0.5), 
-      transparent);
-    transform-origin: 0 50%;
-    pointer-events: none;
-    z-index: 7;
-    opacity: 0;
-    transition: opacity 0.4s;
+    display: none;
   }
-  .measure-line.show { opacity: 1; }
   
   /* شريط الخطوة في الأسفل */
   .analysis-status-bar {
@@ -1292,6 +1269,31 @@
   }
   .analysis-timer.done .timer-num {
     color: #4ade80;
+  }
+  
+  /* 🎯 حالة "جاري التحليل" - راقية ومتزامنة مع Claude */
+  .analysis-timer.processing .timer-progress {
+    stroke: rgba(212, 168, 90, 0.85);
+    animation: spinRing 1.4s linear infinite;
+    transform-origin: 50% 50%;
+    filter: drop-shadow(0 0 10px rgba(212, 168, 90, 0.5));
+  }
+  .analysis-timer.processing .timer-num {
+    color: rgba(212, 168, 90, 0.95);
+    font-size: 22px !important;
+    letter-spacing: 3px;
+  }
+  .processing-dots {
+    display: inline-block;
+    animation: dotsBlink 1.4s ease-in-out infinite;
+  }
+  @keyframes spinRing {
+    from { transform: rotate(-90deg); }
+    to { transform: rotate(270deg); }
+  }
+  @keyframes dotsBlink {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
   }
   
   /* النتيجة النهائية */
@@ -2033,7 +2035,7 @@
     </div>
     
     <!-- 🏷️ رقم الإصدار -->
-    <div class="version-badge">v1.0.0</div>
+    <div class="version-badge">v1.0.3</div>
   </div>
 
   <!-- شاشة التعليمات قبل التحليل -->
@@ -2149,13 +2151,12 @@
       
       <!-- شريط الحالة في الأسفل -->
       <div class="analysis-status-bar">
-        <div class="analysis-step-label" id="analysisStepLabel">خطوة 1 من 4</div>
-        <div class="analysis-step-text" id="analysisStepText">ابتسم وثبّت وجهك للأمام</div>
+        <div class="analysis-step-label" id="analysisStepLabel">الخطوة الأولى</div>
+        <div class="analysis-step-text" id="analysisStepText">ثبّت وجهك للأمام</div>
         <div class="analysis-steps-dots">
           <div class="step-dot active" id="stepDot1"></div>
           <div class="step-dot" id="stepDot2"></div>
           <div class="step-dot" id="stepDot3"></div>
-          <div class="step-dot" id="stepDot4"></div>
         </div>
       </div>
       
@@ -3812,10 +3813,9 @@ function getCurrentScreen() {
 
 
 var analysisSteps = [
-  { label: 'خطوة 1 من 4', text: 'ابتسم وثبّت وجهك للأمام', duration: 2200 },
-  { label: 'خطوة 2 من 4', text: 'نقيس عرض الجبهة والوجنتين...', duration: 2000 },
-  { label: 'خطوة 3 من 4', text: 'نحلل تناسق الملامح والفك...', duration: 2000 },
-  { label: 'خطوة 4 من 4', text: 'نطابق نتيجتك مع 6 أشكال للوجه...', duration: 1800 }
+  { label: 'الخطوة الأولى', text: 'ثبّت وجهك للأمام', duration: 2500 },
+  { label: 'الخطوة الثانية', text: 'نحلّل ملامح وجهك...', duration: 2500 },
+  { label: 'الخطوة الأخيرة', text: 'نختار أفضل نظارة لك...', duration: 2500 }
 ];
 
 function setStepDot(index, status) {
@@ -3876,10 +3876,11 @@ function showTimerDone() {
   var hint = timer ? timer.querySelector('.timer-hint') : null;
   if (!timer) return;
   
-  timer.classList.add('done');
+  // 🎯 لا نظهر "تم" - بدله "جاري التحليل" مع animation
+  timer.classList.add('processing');
   progress.style.strokeDashoffset = 0;
-  num.textContent = '✓';
-  if (hint) hint.textContent = 'تم! شيل وجهك';
+  num.innerHTML = '<span class="processing-dots">●●●</span>';
+  if (hint) hint.textContent = 'جاري التحليل';
 }
 
 // 🆕 إخفاء وإعادة ضبط العداد
@@ -3979,6 +3980,12 @@ function startFaceAnalysis() {
   var detectionStarted = false;
   var totalDuration = getTotalAnalysisDuration();
   
+  // 🎯 متغيرات للتحليل المتزامن مع Claude
+  var claudeStarted = false;       // هل بدأنا الاستدعاء؟
+  var claudeResultReady = null;    // رد Claude جاهز؟ null = لسه، object = جاهز
+  var claudePromise = null;        // الـ Promise نفسه
+  var perfectStableSince = 0;      // متى بدأ الوجه يكون ثابت perfect
+  
   // 🗑️ تم حذف loadFaceApiModels - نعتمد على Claude فقط
   
   navigator.mediaDevices.getUserMedia({
@@ -4045,6 +4052,37 @@ function startFaceAnalysis() {
       // 🗑️ تم حذف face-api و MediaPipe samples
       // نعتمد على Claude فقط عند نهاية التحليل (8 ثواني)
       
+      // ============================================
+      // 🎯 SMART CAPTURE - التقاط الصورة المثالية
+      // ============================================
+      // نأخذ الصورة فقط لما:
+      //   ✓ وصلنا للخطوة الثانية (3+ ثواني من البداية)
+      //   ✓ الوجه ثابت (perfect quality) لمدة 1 ثانية كاملة
+      //   ✓ ما بدأنا Claude بعد
+      // هذا يضمن صورة واضحة وثابتة للتحليل
+      // ============================================
+      
+      if (quality.status === 'perfect') {
+        if (perfectStableSince === 0) {
+          perfectStableSince = Date.now();
+        }
+      } else {
+        perfectStableSince = 0; // أُعيد لو الوجه تحرك
+      }
+      
+      var stableDuration = perfectStableSince > 0 ? Date.now() - perfectStableSince : 0;
+      
+      // نبدأ Claude لما الوجه يكون ثابت 1 ثانية + الخطوة الثانية+
+      if (currentStep >= 1 && !claudeStarted && stableDuration >= 1000 && analysisVideo.videoWidth > 0) {
+        claudeStarted = true;
+        console.log('🚀 Smart Capture: الوجه ثابت ' + stableDuration + 'ms - نلتقط الصورة الآن');
+        claudePromise = analyzeWithClaude(analysisVideo).then(function(result) {
+          console.log('🤖 Claude responded:', result);
+          claudeResultReady = result;
+          return result;
+        });
+      }
+      
       var elapsed = Date.now() - stepStartTime;
       var currentStepDuration = analysisSteps[currentStep] ? analysisSteps[currentStep].duration : 2000;
       
@@ -4055,12 +4093,47 @@ function startFaceAnalysis() {
           stepStartTime = Date.now();
         } else {
           hideGuidance();
-          showTimerDone(); // نظهر "تم!"
-          // 🥇 ننتقل لـ Claude فقط
-          setTimeout(function() { finishAnalysis(); }, 600);
+          showTimerDone(); // ⏳ "جاري التحليل" (مينيمال)
+          
+          // 🛡️ احتياطي: لو وصلنا للنهاية وClaude ما بدأ
+          // (المستخدم ما ثبّت وجهه طوال الوقت) - نلتقط الصورة الآن
+          if (!claudeStarted && analysisVideo.videoWidth > 0) {
+            claudeStarted = true;
+            console.log('🚀 Fallback: نبدأ Claude الآن (المستخدم ما ثبّت طويلاً)');
+            claudePromise = analyzeWithClaude(analysisVideo).then(function(result) {
+              claudeResultReady = result;
+              return result;
+            });
+          }
+          
+          // 🥇 ننتظر Claude
+          waitForClaudeAndFinish();
         }
       }
     });
+    
+    // 🎯 ننتظر رد Claude ثم ننتقل للنتيجة
+    function waitForClaudeAndFinish() {
+      if (claudeResultReady !== null) {
+        // ✅ Claude جاهز - ننتقل مباشرة
+        console.log('✅ Claude already ready, finishing now');
+        finishAnalysisWithResult(claudeResultReady);
+      } else if (claudePromise) {
+        // ⏳ ننتظر Claude
+        console.log('⏳ Waiting for Claude...');
+        claudePromise.then(function(result) {
+          finishAnalysisWithResult(result);
+        }).catch(function() {
+          finishAnalysisWithResult(null);
+        });
+      } else {
+        // لو ما بدأ Claude (نادر) - نبدأه الآن
+        console.log('⚠️ Claude not started yet, starting now');
+        analyzeWithClaude(analysisVideo).then(finishAnalysisWithResult).catch(function() {
+          finishAnalysisWithResult(null);
+        });
+      }
+    }
     
     function analyzeLoop() {
       if (!state.isAnalyzing) return;
@@ -4154,76 +4227,32 @@ function analyzeWithClaude(videoElement) {
   });
 }
 
-function finishAnalysis() {
+// ============================================
+// 🎯 معالجة نتيجة Claude النهائية
+// (يستخدم الرد المسبق من Background loading)
+// ============================================
+function finishAnalysisWithResult(claudeResult) {
   state.isAnalyzing = false;
   
-  // ============================================
-  // 🥇 Claude Vision - الخوارزمية الوحيدة
-  // ============================================
-  var analysisVideo = $('analysisVideo');
+  console.log('🎯 finishAnalysisWithResult:', claudeResult);
   
-  if (!analysisVideo || !analysisVideo.videoWidth) {
-    // ما فيه فيديو - استخدام آمن
+  if (claudeResult && claudeResult.shape && claudeResult.analysis && claudeResult.recommendations) {
+    // ✅ Claude نجح بشكل كامل
+    state.claudeAnalysis = claudeResult.analysis;
+    state.claudeRecommendations = claudeResult.recommendations;
+    console.log('💾 Saved analysis:', state.claudeAnalysis);
+    finalizeAnalysisResult(claudeResult.shape, true);
+  } else if (claudeResult && claudeResult.shape) {
+    // ⚠️ Claude رد بشكل فقط
+    state.claudeAnalysis = '';
+    state.claudeRecommendations = null;
+    finalizeAnalysisResult(claudeResult.shape, true);
+  } else {
+    // ❌ Claude فشل - نستخدم بيضاوي افتراضي (تجربة سلسة بدون رسائل خطأ)
     state.claudeAnalysis = '';
     state.claudeRecommendations = null;
     finalizeAnalysisResult('oval', false);
-    return;
   }
-  
-  analyzeWithClaude(analysisVideo).then(function(claudeResult) {
-    console.log('🎯 finishAnalysis - claudeResult:', claudeResult);
-    
-    if (claudeResult && claudeResult.shape && claudeResult.analysis && claudeResult.recommendations) {
-      // ✅ Claude نجح بشكل كامل (شكل + تحليل + توصيات)
-      state.claudeAnalysis = claudeResult.analysis;
-      state.claudeRecommendations = claudeResult.recommendations;
-      
-      console.log('💾 Saved analysis:', state.claudeAnalysis);
-      console.log('💾 Saved recommendations:', state.claudeRecommendations);
-      
-      finalizeAnalysisResult(claudeResult.shape, true);
-    } else if (claudeResult && claudeResult.shape) {
-      // ⚠️ Claude رد بـ شكل فقط (بدون تحليل عميق)
-      console.log('⚠️ Claude returned shape only (no deep analysis)');
-      state.claudeAnalysis = '';
-      state.claudeRecommendations = null;
-      finalizeAnalysisResult(claudeResult.shape, true);
-    } else {
-      // ❌ Claude فشل تماماً - نعرض رسالة خطأ
-      console.log('❌ Claude failed completely');
-      showServiceError();
-    }
-  }).catch(function(err) {
-    console.log('❌ Claude error:', err);
-    showServiceError();
-  });
-}
-
-// ============================================
-// 🚨 رسالة خطأ - فشل الاتصال بالخدمة
-// ============================================
-function showServiceError() {
-  // نخفي العداد ونوقف التحليل
-  state.isAnalyzing = false;
-  for (var i = 0; i < analysisSteps.length; i++) setStepDot(i, 'done');
-  
-  setTimeout(function() {
-    // نعرض رسالة الخطأ بدل النتيجة
-    $('resultEmoji').textContent = '⚠️';
-    $('resultTitle').textContent = 'الخدمة غير متاحة مؤقتاً';
-    $('resultDesc').textContent = 'الرجاء التواصل مع خدمة العملاء';
-    
-    // نغيّر زر "شوف النظارات" لزر "تواصل مع خدمة العملاء"
-    var continueBtn = $('resultContinueBtn');
-    if (continueBtn) {
-      continueBtn.textContent = '📱 تواصل مع خدمة العملاء';
-      continueBtn.onclick = function() {
-        window.open('https://wa.me/966500000000', '_blank');
-      };
-    }
-    
-    $('analysisResultOverlay').classList.add('show');
-  }, 600);
 }
 
 // ============================================
@@ -4353,11 +4382,11 @@ function finalizeAnalysisResult(finalShape, usedAI) {
       $('resultDesc').textContent = info.desc;
     }
     
-    // ✅ نعيد ضبط الزر للوضع الافتراضي (تجنب بقاء حالة showServiceError)
+    // ✅ نعيد ضبط الزر للوضع الافتراضي
     var continueBtn = $('resultContinueBtn');
     if (continueBtn) {
       continueBtn.innerHTML = 'شوف النظارات المناسبة لك <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" transform="scale(-1 1) translate(-24 0)"/></svg>';
-      continueBtn.onclick = null; // نزيل أي onclick قديم من showServiceError
+      continueBtn.onclick = null; // إعادة ضبط للـ onclick
     }
     
     $('analysisResultOverlay').classList.add('show');
