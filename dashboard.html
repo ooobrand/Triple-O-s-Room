@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triple O - لوحة التحكم</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif; }
+body { 
+  background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%); 
+  color: #1a1a1a;
+  min-height: 100vh;
+}
+
+/* Login Screen */
+.login-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  z-index: 100;
+}
+.login-card {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.login-icon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #d4a85a, #b8893f);
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: white;
+}
+.login-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.login-subtitle {
+  color: #666;
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+.login-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.login-input:focus {
+  border-color: #d4a85a;
+}
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.login-btn:hover {
+  background: linear-gradient(135deg, #d4a85a, #b8893f);
+  color: #1a1a1a;
+}
+.login-error {
+  color: #c0392b;
+  font-size: 13px;
+  margin-top: 12px;
+  display: none;
+}
+
+/* Dashboard */
+.dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  display: none;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.dashboard-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dashboard-logo {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #d4a85a, #b8893f);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -1px;
+}
+.dashboard-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.dashboard-subtitle {
+  font-size: 12px;
+  color: #888;
+}
+.refresh-btn {
+  background: white;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  color: #1a1a1a;
+}
+.refresh-btn:hover {
+  border-color: #d4a85a;
+  background: #fafafa;
+}
+.refresh-btn svg {
+  transition: transform 0.3s;
+}
+.refresh-btn.loading svg {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+.stat-card {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid #f0f0f0;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.stat-card:hover {
+  border-color: #d4a85a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212, 168, 90, 0.15);
+}
+.stat-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.stat-card-icon.gold {
+  background: linear-gradient(135deg, rgba(212, 168, 90, 0.15), rgba(212, 168, 90, 0.05));
+  color: #b8893f;
+}
+.stat-card-icon.blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05));
+  color: #2563eb;
+}
+.stat-card-icon.green {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+  color: #16a34a;
+}
+.stat-card-icon.purple {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05));
+  color: #9333ea;
+}
+.stat-card-label {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stat-card-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+.stat-card-sub {
+  font-size: 11px;
+  color: #999;
+  margin-top: 6px;
+}
+
+/* Sections */
+.section {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid #f0f0f0;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f5f5f5;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, rgba(212, 168, 90, 0.15), rgba(212, 168, 90, 0.05));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b8893f;
+}
+
+/* Shape Bars */
+.shape-list, .product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.shape-item, .product-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.shape-info, .product-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 140px;
+  flex-shrink: 0;
+}
+.shape-emoji {
+  font-size: 22px;
+  width: 32px;
+}
+.product-rank {
+  width: 24px;
+  height: 24px;
+  background: #f0f0f0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #666;
+  flex-shrink: 0;
+}
+.product-rank.first {
+  background: linear-gradient(135deg, #d4a85a, #b8893f);
+  color: white;
+}
+.shape-name, .product-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+.shape-bar, .product-bar {
+  flex: 1;
+  height: 32px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.shape-bar-fill, .product-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d4a85a, #b8893f);
+  border-radius: 8px;
+  transition: width 1s cubic-bezier(0.32, 0.72, 0, 1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  min-width: 30px;
+}
+.shape-bar-fill::after, .product-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: shimmer 2s linear infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.shape-bar-value, .product-bar-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: white;
+  position: relative;
+  z-index: 1;
+}
+.shape-percent, .product-percent {
+  font-size: 12px;
+  color: #666;
+  min-width: 50px;
+  text-align: left;
+  font-weight: 700;
+}
+
+/* Daily Chart */
+.daily-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 200px;
+  padding: 10px 0;
+  border-bottom: 2px solid #f0f0f0;
+  margin-bottom: 12px;
+  overflow-x: auto;
+}
+.daily-bar {
+  flex: 1;
+  min-width: 12px;
+  background: linear-gradient(180deg, #d4a85a, #b8893f);
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.daily-bar:hover {
+  filter: brightness(1.15);
+  transform: scaleY(1.02);
+}
+.daily-bar-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: #1a1a1a;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.daily-bar:hover .daily-bar-tooltip {
+  opacity: 1;
+}
+.daily-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #888;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+}
+.empty-state-icon {
+  width: 80px;
+  height: 80px;
+  background: #f5f5f5;
+  border-radius: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+.empty-state-desc {
+  font-size: 14px;
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Loading */
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f0f0f0;
+  border-top-color: #d4a85a;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .dashboard { padding: 20px 14px; }
+  .stat-card { padding: 18px; }
+  .stat-card-value { font-size: 26px; }
+  .section { padding: 18px; }
+  .shape-info, .product-info { min-width: 100px; }
+  .shape-name, .product-name { font-size: 12px; }
+}
+
+/* Last updated */
+.last-updated {
+  text-align: center;
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 20px;
+  font-family: 'Courier New', monospace;
+}
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+    </div>
+    <div class="login-title">لوحة التحكم</div>
+    <div class="login-subtitle">Triple O - الإحصائيات</div>
+    <input type="password" class="login-input" id="passwordInput" placeholder="كلمة المرور" autofocus>
+    <button class="login-btn" id="loginBtn">دخول</button>
+    <div class="login-error" id="loginError">كلمة المرور غير صحيحة</div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard">
+  
+  <!-- Header -->
+  <div class="dashboard-header">
+    <div class="dashboard-brand">
+      <div class="dashboard-logo">ooo</div>
+      <div>
+        <div class="dashboard-title">لوحة التحكم</div>
+        <div class="dashboard-subtitle">Triple O Analytics</div>
+      </div>
+    </div>
+    <button class="refresh-btn" id="refreshBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path></svg>
+      تحديث
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <div style="color: #888;">جاري تحميل الإحصائيات...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================
+// 🔐 الإعدادات
+// ============================================
+var WORKER_URL = 'https://claude-vision.ooobrand-sa.workers.dev';
+var DASHBOARD_PASSWORD = 'ooo2026admin'; // ⚠️ نفس كلمة المرور في Worker
+
+// ============================================
+// 🔑 Login
+// ============================================
+function tryLogin() {
+  var pw = document.getElementById('passwordInput').value;
+  if (pw === DASHBOARD_PASSWORD) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    sessionStorage.setItem('ooo_dashboard_auth', 'yes');
+    loadStats();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('passwordInput').value = '';
+  }
+}
+
+document.getElementById('loginBtn').addEventListener('click', tryLogin);
+document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') tryLogin();
+});
+
+// تخطّي Login لو مسجل دخول
+if (sessionStorage.getItem('ooo_dashboard_auth') === 'yes') {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  loadStats();
+}
+
+// ============================================
+// 📊 تحميل الإحصائيات
+// ============================================
+function loadStats() {
+  var content = document.getElementById('content');
+  var refreshBtn = document.getElementById('refreshBtn');
+  
+  refreshBtn.classList.add('loading');
+  
+  fetch(WORKER_URL + '/stats?key=' + encodeURIComponent(DASHBOARD_PASSWORD))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      refreshBtn.classList.remove('loading');
+      
+      if (!data.success || !data.stats) {
+        showError(data.error || 'فشل تحميل البيانات');
+        return;
+      }
+      
+      var stats = data.stats;
+      
+      // لو ما فيه بيانات
+      if (!stats.total_analyses || stats.total_analyses === 0) {
+        content.innerHTML = renderEmptyState();
+        return;
+      }
+      
+      content.innerHTML = renderDashboard(stats);
+      animateBars();
+    })
+    .catch(function(err) {
+      refreshBtn.classList.remove('loading');
+      showError('خطأ في الاتصال: ' + err.message);
+    });
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadStats);
+
+// ============================================
+// 🎨 رسم Dashboard
+// ============================================
+var FACE_SHAPES = {
+  'oval':    { name: 'بيضاوي',  emoji: '✨' },
+  'round':   { name: 'دائري',   emoji: '⭕' },
+  'square':  { name: 'مربع',    emoji: '⬜' },
+  'heart':   { name: 'قلب',     emoji: '💛' },
+  'diamond': { name: 'دايموند', emoji: '💎' },
+  'oblong':  { name: 'مستطيل',  emoji: '📐' }
+};
+
+var PRODUCTS = {
+  'clear-grant': 'CLEAR GRANT',
+  'gold-os':     "GOLD O'S",
+  'otto-lens':   'OTTO LENS'
+};
+
+function renderDashboard(stats) {
+  // حساب metrics
+  var total = stats.total_analyses;
+  var today = new Date().toISOString().split('T')[0];
+  var todayCount = stats.daily[today] || 0;
+  var totalCost = (total * 0.001).toFixed(2);
+  var totalCostSar = (totalCost * 3.75).toFixed(1);
+  
+  // أيام التشغيل
+  var firstDate = stats.first_date ? new Date(stats.first_date) : new Date();
+  var daysRunning = Math.max(1, Math.floor((new Date() - firstDate) / (1000 * 60 * 60 * 24)));
+  var avgPerDay = (total / daysRunning).toFixed(1);
+  
+  // أكثر شكل
+  var topShape = Object.keys(stats.shapes).sort(function(a, b) {
+    return stats.shapes[b] - stats.shapes[a];
+  })[0];
+  var topShapeName = FACE_SHAPES[topShape] ? FACE_SHAPES[topShape].name : '-';
+  
+  // أكثر منتج
+  var topProduct = Object.keys(stats.top_products).sort(function(a, b) {
+    return stats.top_products[b] - stats.top_products[a];
+  })[0];
+  var topProductName = PRODUCTS[topProduct] || '-';
+  
+  var html = '';
+  
+  // ============= Stats Cards =============
+  html += '<div class="stats-grid">';
+  
+  html += '<div class="stat-card">';
+  html += '<div class="stat-card-icon gold"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 3v18h18"></path><path d="M7 12l4-4 4 4 6-6"></path></svg></div>';
+  html += '<div class="stat-card-label">إجمالي التحاليل</div>';
+  html += '<div class="stat-card-value">' + total.toLocaleString() + '</div>';
+  html += '<div class="stat-card-sub">منذ بداية التشغيل</div>';
+  html += '</div>';
+  
+  html += '<div class="stat-card">';
+  html += '<div class="stat-card-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>';
+  html += '<div class="stat-card-label">تحاليل اليوم</div>';
+  html += '<div class="stat-card-value">' + todayCount.toLocaleString() + '</div>';
+  html += '<div class="stat-card-sub">متوسط: ' + avgPerDay + ' / يوم</div>';
+  html += '</div>';
+  
+  html += '<div class="stat-card">';
+  html += '<div class="stat-card-icon green"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 12l-4-4-4 4"></path><line x1="12" y1="16" x2="12" y2="8"></line></svg></div>';
+  html += '<div class="stat-card-label">أكثر شكل وجه</div>';
+  html += '<div class="stat-card-value" style="font-size:22px;">' + topShapeName + '</div>';
+  html += '<div class="stat-card-sub">' + (stats.shapes[topShape] || 0) + ' تحليل</div>';
+  html += '</div>';
+  
+  html += '<div class="stat-card">';
+  html += '<div class="stat-card-icon purple"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>';
+  html += '<div class="stat-card-label">النظارة الأكثر</div>';
+  html += '<div class="stat-card-value" style="font-size:18px;">' + topProductName + '</div>';
+  html += '<div class="stat-card-sub">' + (stats.top_products[topProduct] || 0) + ' توصية</div>';
+  html += '</div>';
+  
+  html += '</div>';
+  
+  // ============= Daily Chart =============
+  var dailyKeys = Object.keys(stats.daily).sort();
+  if (dailyKeys.length > 0) {
+    var last30 = dailyKeys.slice(-30);
+    var maxDaily = Math.max.apply(null, last30.map(function(k) { return stats.daily[k]; }));
+    
+    html += '<div class="section">';
+    html += '<div class="section-header">';
+    html += '<div class="section-title"><div class="section-icon">';
+    html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="3" x2="3" y2="21"></line><line x1="3" y1="21" x2="21" y2="21"></line><rect x="7" y="13" width="3" height="6"></rect><rect x="13" y="9" width="3" height="10"></rect><rect x="19" y="5" width="3" height="14"></rect></svg>';
+    html += '</div>التحاليل اليومية - آخر ' + last30.length + ' يوم</div>';
+    html += '</div>';
+    
+    html += '<div class="daily-chart">';
+    for (var i = 0; i < last30.length; i++) {
+      var date = last30[i];
+      var count = stats.daily[date];
+      var pct = (count / maxDaily) * 100;
+      var dateObj = new Date(date);
+      var dateStr = dateObj.getDate() + '/' + (dateObj.getMonth() + 1);
+      html += '<div class="daily-bar" style="height:' + pct + '%">';
+      html += '<div class="daily-bar-tooltip">' + dateStr + ': ' + count + ' تحليل</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    
+    html += '<div class="daily-labels">';
+    html += '<span>' + new Date(last30[0]).toLocaleDateString('ar', { day:'numeric', month:'short' }) + '</span>';
+    html += '<span>' + new Date(last30[last30.length-1]).toLocaleDateString('ar', { day:'numeric', month:'short' }) + '</span>';
+    html += '</div>';
+    html += '</div>';
+  }
+  
+  // ============= Shapes Distribution =============
+  var sortedShapes = Object.keys(stats.shapes).sort(function(a, b) {
+    return stats.shapes[b] - stats.shapes[a];
+  });
+  
+  if (sortedShapes.length > 0) {
+    var maxShape = stats.shapes[sortedShapes[0]];
+    
+    html += '<div class="section">';
+    html += '<div class="section-header">';
+    html += '<div class="section-title"><div class="section-icon">';
+    html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>';
+    html += '</div>توزيع أشكال الوجه</div>';
+    html += '</div>';
+    
+    html += '<div class="shape-list">';
+    for (var i = 0; i < sortedShapes.length; i++) {
+      var shapeKey = sortedShapes[i];
+      var shapeData = FACE_SHAPES[shapeKey] || { name: shapeKey, emoji: '👤' };
+      var count = stats.shapes[shapeKey];
+      var pct = ((count / total) * 100).toFixed(1);
+      var barWidth = (count / maxShape) * 100;
+      
+      html += '<div class="shape-item">';
+      html += '<div class="shape-info">';
+      html += '<span class="shape-emoji">' + shapeData.emoji + '</span>';
+      html += '<span class="shape-name">' + shapeData.name + '</span>';
+      html += '</div>';
+      html += '<div class="shape-bar">';
+      html += '<div class="shape-bar-fill" data-width="' + barWidth + '" style="width:0">';
+      html += '<span class="shape-bar-value">' + count + '</span>';
+      html += '</div>';
+      html += '</div>';
+      html += '<div class="shape-percent">' + pct + '%</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+  }
+  
+  // ============= Top Products =============
+  var sortedProducts = Object.keys(stats.top_products).sort(function(a, b) {
+    return stats.top_products[b] - stats.top_products[a];
+  });
+  
+  if (sortedProducts.length > 0) {
+    var maxProduct = stats.top_products[sortedProducts[0]];
+    var totalRec = sortedProducts.reduce(function(s, k) { return s + stats.top_products[k]; }, 0);
+    
+    html += '<div class="section">';
+    html += '<div class="section-header">';
+    html += '<div class="section-title"><div class="section-icon">';
+    html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>';
+    html += '</div>النظارات الأكثر توصية</div>';
+    html += '</div>';
+    
+    html += '<div class="product-list">';
+    for (var i = 0; i < sortedProducts.length; i++) {
+      var productKey = sortedProducts[i];
+      var productName = PRODUCTS[productKey] || productKey;
+      var count = stats.top_products[productKey];
+      var pct = ((count / totalRec) * 100).toFixed(1);
+      var barWidth = (count / maxProduct) * 100;
+      var rankClass = i === 0 ? 'first' : '';
+      
+      html += '<div class="product-item">';
+      html += '<div class="product-info">';
+      html += '<span class="product-rank ' + rankClass + '">' + (i + 1) + '</span>';
+      html += '<span class="product-name">' + productName + '</span>';
+      html += '</div>';
+      html += '<div class="product-bar">';
+      html += '<div class="product-bar-fill" data-width="' + barWidth + '" style="width:0">';
+      html += '<span class="product-bar-value">' + count + '</span>';
+      html += '</div>';
+      html += '</div>';
+      html += '<div class="product-percent">' + pct + '%</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+  }
+  
+  // Last updated
+  html += '<div class="last-updated">آخر تحديث: ' + new Date().toLocaleString('ar-SA') + '</div>';
+  
+  return html;
+}
+
+function animateBars() {
+  setTimeout(function() {
+    var bars = document.querySelectorAll('[data-width]');
+    bars.forEach(function(bar) {
+      bar.style.width = bar.getAttribute('data-width') + '%';
+    });
+  }, 100);
+}
+
+function renderEmptyState() {
+  return '<div class="section"><div class="empty-state">' +
+    '<div class="empty-state-icon">' +
+    '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"></path><path d="M7 12l4-4 4 4 6-6"></path></svg>' +
+    '</div>' +
+    '<div class="empty-state-title">لا توجد بيانات بعد</div>' +
+    '<div class="empty-state-desc">لما العملاء يبدؤون يحلّلون وجوههم في room.ooo.sa، الإحصائيات راح تظهر هنا تلقائياً</div>' +
+    '</div></div>';
+}
+
+function showError(message) {
+  document.getElementById('content').innerHTML = 
+    '<div class="section"><div class="empty-state">' +
+    '<div class="empty-state-icon" style="background:#fee;">' +
+    '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>' +
+    '</div>' +
+    '<div class="empty-state-title">خطأ في تحميل البيانات</div>' +
+    '<div class="empty-state-desc" style="color:#c0392b;">' + message + '</div>' +
+    '</div></div>';
+}
+</script>
+
+</body>
+</html>
